@@ -1,0 +1,13 @@
+/*
+ * Wire the reed switch / Hall sensor to GPIO pin 16.
+ * One leg of the switch/sensor goes to this pin, the other to GND.
+ * GPIO_PULL_UP keeps the line high when open; the switch/sensor pulls
+ * it low (ACTIVE_LOW) when the magnet passes.
+ *
+ * Change the pin number below to match your wiring if needed.
+ */
+/ {
+	zephyr,user {
+		wheel-sensor-gpios = <&gpio0 16 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+	};
+};
