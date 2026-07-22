@@ -1,0 +1,13 @@
+menu "Application Configuration"
+
+config DISPLAY_ENABLED
+	bool "Enable SSD1306 OLED display support"
+	default n
+	help
+		Enable support for SSD1306 OLED display over I2C.
+		When enabled, button presses will be displayed on the OLED.
+		When disabled, button presses will be printed to console only.
+
+endmenu
+
+source "Kconfig.zephyr"
