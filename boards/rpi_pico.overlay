@@ -9,5 +9,21 @@
 / {
 	zephyr,user {
 		wheel-sensor-gpios = <&gpio0 16 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+		button1-gpios = <&gpio0 17 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+		button2-gpios = <&gpio0 18 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+	};
+};
+
+/* Add storage partition for NVS settings to existing flash0 partitions */
+&flash0 {
+	partitions {
+		compatible = "fixed-partitions";
+        #address-cells = <1>;
+        #size-cells = <1>;
+		/* Storage partition for NVS settings - 16KB at 128KB offset from flash start */
+		storage_partition: partition@20000 {
+			label = "storage";
+			reg = <0x00020000 0x00004000>;
+		};
 	};
 };
