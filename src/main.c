@@ -16,9 +16,48 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/settings/settings.h>
+#include <zephyr/sys/atomic.h>
 #include <stdio.h>
 #include <string.h>
 #include <zephyr/sys/util.h>
+
+/* Constants */
+#define MIN_WHEEL_DIAMETER_CM 10
+#define MAX_WHEEL_DIAMETER_CM 100
+#define DEBOUNCE_MS 50
+#define REPORT_INTERVAL_MS 1000
+
+/* Wheel configuration */
+#define DEFAULT_WHEEL_DIAMETER_CM 660
+
+/*
+ * Application state structures
+ */
+
+/* Wheel sensor state - shared between ISR and main thread */
+struct wheel_sensor_state {
+	atomic_t revolution_count;
+	volatile int64_t last_trigger_ms;
+};
+
+/* Button state - shared between ISR and main thread */
+struct button_state {
+	volatile int64_t last_button1_press_ms;
+	volatile int64_t last_button2_press_ms;
+	volatile bool in_settings_mode;
+	int64_t previous_button1_press_time;
+};
+
+/* Wheel configuration */
+struct wheel_config {
+	int diameter_cm;
+};
+
+/* Runtime tracking state (main thread only) */
+struct runtime_state {
+	uint32_t last_count;
+	float total_distance_m;
+};
 
 /* Pulls the gpio spec (port/pin/flags) straight from the devicetree
  * overlay's "zephyr,user" node - no custom binding needed. */
@@ -33,34 +72,30 @@ static struct gpio_callback wheel_sensor_cb_data;
 static struct gpio_callback button1_cb_data;
 static struct gpio_callback button2_cb_data;
 
-/* Shared between ISR context and main loop - keep it simple/atomic-ish */
-static volatile uint32_t revolution_count;
-static volatile int64_t last_trigger_ms;
+/* Global state instances */
+static struct wheel_sensor_state wheel_sensor_state = {
+	.revolution_count = ATOMIC_INIT(0),
+	.last_trigger_ms = 0,
+};
 
-/* Button handling state */
-static volatile int64_t last_button1_press_ms = 0;
-static volatile int64_t last_button2_press_ms = 0;
-static volatile bool in_settings_mode = false;
+static struct button_state button_state = {
+	.last_button1_press_ms = 0,
+	.last_button2_press_ms = 0,
+	.in_settings_mode = false,
+	.previous_button1_press_time = 0,
+};
 
-/* Wheel diameter setting (in cm) */
-static int wheel_diameter_cm = 660; // Default: 660mm = 66cm (common 700x23c tire)
-#define MIN_WHEEL_DIAMETER_CM 10
-#define MAX_WHEEL_DIAMETER_CM 100
+static struct wheel_config wheel_config = {
+	.diameter_cm = DEFAULT_WHEEL_DIAMETER_CM,
+};
+
+static struct runtime_state runtime_state = {
+	.last_count = 0,
+	.total_distance_m = 0.0f,
+};
 
 /* Forward declarations */
-static void update_wheel_circumference(void);
 static void save_wheel_diameter_setting(void);
-
-/* Ignore any edge that arrives within this window of the previous one.
- * Mechanical reed switches bounce; this also rejects electrical noise.
- * Tune this if you find missed or double-counted revolutions. */
-#define DEBOUNCE_MS 50
-
-/* Calculate wheel circumference from diameter (in meters) */
-static float wheel_circumference_m;
-
-/* How often the main loop reports speed/distance */
-#define REPORT_INTERVAL_MS 1000
 
 static void wheel_sensor_triggered(const struct device *dev,
 			    struct gpio_callback *cb,
@@ -72,11 +107,11 @@ static void wheel_sensor_triggered(const struct device *dev,
 
 	int64_t now = k_uptime_get();
 
-	if ((now - last_trigger_ms) < DEBOUNCE_MS) {
+	if ((now - wheel_sensor_state.last_trigger_ms) < DEBOUNCE_MS) {
 		return;
 	}
-	last_trigger_ms = now;
-	revolution_count++;
+	wheel_sensor_state.last_trigger_ms = now;
+	atomic_inc(&wheel_sensor_state.revolution_count);
 }
 
 static void button1_pressed(const struct device *dev,
@@ -90,32 +125,30 @@ static void button1_pressed(const struct device *dev,
 	int64_t now = k_uptime_get();
 
 	// Debounce
-	if ((now - last_button1_press_ms) < DEBOUNCE_MS) {
+	if ((now - button_state.last_button1_press_ms) < DEBOUNCE_MS) {
 		return;
 	}
-	last_button1_press_ms = now;
+	button_state.last_button1_press_ms = now;
 
 	// Check for double-press to enter/exit settings mode
-	static int64_t previous_press_time = 0;
-	if ((now - previous_press_time) < 500) {
+	if ((now - button_state.previous_button1_press_time) < 500) {
 		// Double press detected - toggle settings mode
-		in_settings_mode = !in_settings_mode;
-		if (in_settings_mode) {
-			printk("Entering settings mode. Current diameter: %d cm\n", wheel_diameter_cm);
+		button_state.in_settings_mode = !button_state.in_settings_mode;
+		if (button_state.in_settings_mode) {
+			printk("Entering settings mode. Current diameter: %d cm\n", wheel_config.diameter_cm);
 		} else {
-			printk("Exiting settings mode. Wheel diameter set to: %d cm\n", wheel_diameter_cm);
+			printk("Exiting settings mode. Wheel diameter set to: %d cm\n", wheel_config.diameter_cm);
 			// Save the setting
 			save_wheel_diameter_setting();
 		}
 	} else {
 		// Single press - adjust diameter if in settings mode
-		if (in_settings_mode) {
-			wheel_diameter_cm = MIN(wheel_diameter_cm + 1, MAX_WHEEL_DIAMETER_CM);
-			printk("Wheel diameter: %d cm\n", wheel_diameter_cm);
-			update_wheel_circumference();
+		if (button_state.in_settings_mode) {
+			wheel_config.diameter_cm = MIN(wheel_config.diameter_cm + 1, MAX_WHEEL_DIAMETER_CM);
+			printk("Wheel diameter: %d cm\n", wheel_config.diameter_cm);
 		}
 	}
-	previous_press_time = now;
+	button_state.previous_button1_press_time = now;
 }
 
 static void button2_pressed(const struct device *dev,
@@ -129,24 +162,16 @@ static void button2_pressed(const struct device *dev,
 	int64_t now = k_uptime_get();
 
 	// Debounce
-	if ((now - last_button2_press_ms) < DEBOUNCE_MS) {
+	if ((now - button_state.last_button2_press_ms) < DEBOUNCE_MS) {
 		return;
 	}
-	last_button2_press_ms = now;
+	button_state.last_button2_press_ms = now;
 
 	// Single press - adjust diameter if in settings mode
-	if (in_settings_mode) {
-		wheel_diameter_cm = MAX(wheel_diameter_cm - 1, MIN_WHEEL_DIAMETER_CM);
-		printk("Wheel diameter: %d cm\n", wheel_diameter_cm);
-		update_wheel_circumference();
+	if (button_state.in_settings_mode) {
+		wheel_config.diameter_cm = MAX(wheel_config.diameter_cm - 1, MIN_WHEEL_DIAMETER_CM);
+		printk("Wheel diameter: %d cm\n", wheel_config.diameter_cm);
 	}
-}
-
-/* Helper function to update wheel circumference from diameter */
-static void update_wheel_circumference(void)
-{
-	// Circumference = π * diameter, convert cm to meters
-	wheel_circumference_m = 3.1415926535f * (wheel_diameter_cm / 100.0f);
 }
 
 /* Settings handler for wheel diameter */
@@ -167,9 +192,8 @@ static int settings_wheel_diameter_handler(const char *key, size_t len,
 		}
 
 		if (val >= MIN_WHEEL_DIAMETER_CM && val <= MAX_WHEEL_DIAMETER_CM) {
-			wheel_diameter_cm = val;
-			update_wheel_circumference();
-			printk("Loaded wheel diameter: %d cm\n", wheel_diameter_cm);
+			wheel_config.diameter_cm = val;
+			printk("Loaded wheel diameter: %d cm\n", wheel_config.diameter_cm);
 		} else {
 			printk("Invalid wheel diameter value: %d cm\n", val);
 		}
@@ -189,7 +213,7 @@ static struct settings_handler wheel_diameter_handler = {
 static void save_wheel_diameter_setting(void)
 {
 	int rc = settings_save_one("wheel_diameter/wheel_diameter",
-					   &wheel_diameter_cm, sizeof(int));
+					   &wheel_config.diameter_cm, sizeof(int));
 	if (rc < 0) {
 		printk("Failed to save wheel diameter setting: %d\n", rc);
 	}
@@ -215,10 +239,8 @@ int main(void)
 
 	// Load wheel diameter setting
 	load_wheel_diameter_setting();
-	update_wheel_circumference();
 
-	printk("Wheel diameter: %d cm, circumference: %.3f m\n",
-	       wheel_diameter_cm, (double)wheel_circumference_m);
+	printk("Wheel diameter: %d cm\n", wheel_config.diameter_cm);
 
 	if (!gpio_is_ready_dt(&wheel_sensor)) {
 		printk("Error: wheel sensor GPIO device not ready\n");
@@ -282,24 +304,25 @@ int main(void)
 	printk("Wheel sensor ready, waiting for revolutions...\n");
 	printk("Press button 1 twice quickly to enter settings mode\n");
 
-	uint32_t last_count = 0;
-	float total_distance_m = 0.0f;
+	/* Initialize runtime state - already done at file scope */
 
 	while (1) {
 		k_msleep(REPORT_INTERVAL_MS);
 
 		// Skip processing if in settings mode
-		if (in_settings_mode) {
+		if (button_state.in_settings_mode) {
 			continue;
 		}
 
-		/* Snapshot the counter - a single 32-bit read is fine here */
-		uint32_t current_count = revolution_count;
-		uint32_t delta = current_count - last_count;
-		last_count = current_count;
+		/* Snapshot the counter atomically */
+		uint32_t current_count = atomic_get(&wheel_sensor_state.revolution_count);
+		uint32_t delta = current_count - runtime_state.last_count;
+		runtime_state.last_count = current_count;
 
-		float distance_this_period_m = delta * wheel_circumference_m;
-		total_distance_m += distance_this_period_m;
+		/* Circumference = π * diameter (convert cm to m) */
+		float circumference_m = 3.1415926535f * (wheel_config.diameter_cm / 100.0f);
+		float distance_this_period_m = delta * circumference_m;
+		runtime_state.total_distance_m += distance_this_period_m;
 
 		/* speed (km/h) = distance (m) / time (s) * 3.6 */
 		float speed_kmh = (distance_this_period_m /
@@ -309,9 +332,9 @@ int main(void)
 		       current_count,
 		       (int)speed_kmh,
 		       (unsigned int)((speed_kmh - (int)speed_kmh) * 10),
-		       (int)total_distance_m,
-		       (unsigned int)((total_distance_m - (int)total_distance_m) * 100),
-		       wheel_diameter_cm);
+		       (int)runtime_state.total_distance_m,
+		       (unsigned int)((runtime_state.total_distance_m - (int)runtime_state.total_distance_m) * 100),
+		       wheel_config.diameter_cm);
 	}
 
 	return 0;
