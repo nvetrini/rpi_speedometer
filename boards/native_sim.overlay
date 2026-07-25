@@ -1,0 +1,33 @@
+/*
+ * Simulation overlay mapping to the same paths as rpi_pico.overlay
+ * Uses zephyr,user node with the same property names
+ */
+/ {
+	zephyr,user {
+		/* Wheel sensor - maps to reed0 in sim_inputs */
+		wheel-sensor-gpios = <&gpio0 1 (GPIO_ACTIVE_LOW)>;
+		/* Buttons - map to button0 in sim_inputs */
+		button1-gpios = <&gpio0 0 (GPIO_ACTIVE_LOW)>;
+		button2-gpios = <&gpio0 2 (GPIO_ACTIVE_LOW)>;
+		/* Battery ADC channel - maps to channel@0 in adc0 */
+		io-channels = <&adc0 0>;
+	};
+};
+
+/* native_sim.dts already provides gpio0 as a gpio_emul controller
+   and usually an adc0 as zephyr,adc-emul — check your Zephyr version's
+   boards/native/native_sim/native_sim.dts. If adc0 isn't already there,
+   add it yourself here instead of just configuring the channel below. */
+&adc0 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	channel@0 {
+		reg = <0>;
+		zephyr,gain = "ADC_GAIN_1";
+		zephyr,reference = "ADC_REF_INTERNAL";
+		zephyr,vref-mv = <3300>;
+		zephyr,resolution = <12>;
+		zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
+	};
+};

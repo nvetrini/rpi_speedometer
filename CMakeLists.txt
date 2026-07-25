@@ -4,3 +4,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(wheel_sensor)
 
 target_sources(app PRIVATE src/main.c)
+
+if(CONFIG_APP_SIMULATION)
+    target_sources(app PRIVATE src/sim_shell.c)
+endif()

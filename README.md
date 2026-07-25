@@ -57,3 +57,9 @@ minicom -D /dev/ttyACM0 -b 115200
     circumference and units between reboots.
   - GPIO-based buttons (or the `gpio-keys` input subsystem) to adjust
     those settings at runtime.
+
+## Simulation
+
+- run `west build -b native_sim -p` to test
+- launch application with `./build/zephyr/zephyr.exe`
+- attach to UART with e.g. `alacritty -e screen /dev/pts/6`

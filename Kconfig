@@ -8,6 +8,14 @@ config DISPLAY_ENABLED
 		When enabled, button presses will be displayed on the OLED.
 		When disabled, button presses will be printed to console only.
 
+config APP_SIMULATION
+    bool "Enable shell commands to drive simulated peripherals"
+    depends on GPIO_EMUL || ADC_EMUL
+    help
+      Adds 'sim' shell commands to manually toggle the reed switch,
+      simulate a button press, and set a fake battery voltage while
+      running the app on native_sim.
+
 endmenu
 
 source "Kconfig.zephyr"
