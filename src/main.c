@@ -7,7 +7,7 @@
  * main loop periodically derives speed/distance from the count.
  *
  * Button 1 (+1cm) and Button 2 (-1cm) allow setting wheel diameter.
- * Two consecutive presses of button 1 within 500ms enter/exit settings mode.
+ * Two consecutive presses of button 1 within MODE_SWITCH_DELAY_MSms enter/exit settings mode.
  */
 
 #include <zephyr/kernel.h>
@@ -26,6 +26,7 @@
 #define MAX_WHEEL_DIAMETER_CM 100
 #define DEBOUNCE_MS 50
 #define REPORT_INTERVAL_MS 1000
+#define MODE_SWITCH_DELAY_MS 500
 
 /* Wheel configuration */
 #define DEFAULT_WHEEL_DIAMETER_CM 660
@@ -42,10 +43,9 @@ struct wheel_sensor_state {
 
 /* Button state - shared between ISR and main thread */
 struct button_state {
-	volatile int64_t last_button1_press_ms;
-	volatile int64_t last_button2_press_ms;
+	volatile int64_t last_press_ms[2];
 	volatile bool in_settings_mode;
-	int64_t previous_button1_press_time;
+	int64_t previous_press_time[2];
 };
 
 /* Wheel configuration */
@@ -79,10 +79,9 @@ static struct wheel_sensor_state wheel_sensor_state = {
 };
 
 static struct button_state button_state = {
-	.last_button1_press_ms = 0,
-	.last_button2_press_ms = 0,
+	.last_press_ms = {0, 0},
 	.in_settings_mode = false,
-	.previous_button1_press_time = 0,
+	.previous_press_time = {0, 0},
 };
 
 static struct wheel_config wheel_config = {
@@ -114,63 +113,56 @@ static void wheel_sensor_triggered(const struct device *dev,
 	atomic_inc(&wheel_sensor_state.revolution_count);
 }
 
-static void button1_pressed(const struct device *dev,
-			   struct gpio_callback *cb,
-			   uint32_t pins)
+static void button_pressed(const struct device *dev,
+		   struct gpio_callback *cb,
+		   uint32_t pins)
 {
 	ARG_UNUSED(dev);
 	ARG_UNUSED(cb);
-	ARG_UNUSED(pins);
 
 	int64_t now = k_uptime_get();
 
-	// Debounce
-	if ((now - button_state.last_button1_press_ms) < DEBOUNCE_MS) {
+	int button_idx = -1;
+	if (pins & BIT(button1.pin)) {
+		button_idx = 0;
+	} else if (pins & BIT(button2.pin)) {
+		button_idx = 1;
+	}
+	if (button_idx < 0) {
 		return;
 	}
-	button_state.last_button1_press_ms = now;
 
-	// Check for double-press to enter/exit settings mode
-	if ((now - button_state.previous_button1_press_time) < 500) {
-		// Double press detected - toggle settings mode
-		button_state.in_settings_mode = !button_state.in_settings_mode;
-		if (button_state.in_settings_mode) {
-			printk("Entering settings mode. Current diameter: %d cm\n", wheel_config.diameter_cm);
+	// Debounce
+	if ((now - button_state.last_press_ms[button_idx]) < DEBOUNCE_MS) {
+		return;
+	}
+	button_state.last_press_ms[button_idx] = now;
+
+	if (button_idx == 0) {
+		// Button 1: Check for double-press to enter/exit settings mode
+		if ((now - button_state.previous_press_time[button_idx]) < MODE_SWITCH_DELAY_MS) {
+			button_state.in_settings_mode = !button_state.in_settings_mode;
+			if (button_state.in_settings_mode) {
+				printk("Entering settings mode. Current diameter: %d cm\n", wheel_config.diameter_cm);
+			} else {
+				printk("Exiting settings mode. Wheel diameter set to: %d cm\n", wheel_config.diameter_cm);
+				// Save the setting
+				save_wheel_diameter_setting();
+			}
 		} else {
-			printk("Exiting settings mode. Wheel diameter set to: %d cm\n", wheel_config.diameter_cm);
-			// Save the setting
-			save_wheel_diameter_setting();
+			// Single press - adjust diameter if in settings mode
+			if (button_state.in_settings_mode) {
+				wheel_config.diameter_cm = MIN(wheel_config.diameter_cm + 1, MAX_WHEEL_DIAMETER_CM);
+				printk("Wheel diameter: %d cm\n", wheel_config.diameter_cm);
+			}
 		}
+		button_state.previous_press_time[button_idx] = now;
 	} else {
-		// Single press - adjust diameter if in settings mode
+		// Button 2: Single press - adjust diameter if in settings mode
 		if (button_state.in_settings_mode) {
-			wheel_config.diameter_cm = MIN(wheel_config.diameter_cm + 1, MAX_WHEEL_DIAMETER_CM);
+			wheel_config.diameter_cm = MAX(wheel_config.diameter_cm - 1, MIN_WHEEL_DIAMETER_CM);
 			printk("Wheel diameter: %d cm\n", wheel_config.diameter_cm);
 		}
-	}
-	button_state.previous_button1_press_time = now;
-}
-
-static void button2_pressed(const struct device *dev,
-			   struct gpio_callback *cb,
-			   uint32_t pins)
-{
-	ARG_UNUSED(dev);
-	ARG_UNUSED(cb);
-	ARG_UNUSED(pins);
-
-	int64_t now = k_uptime_get();
-
-	// Debounce
-	if ((now - button_state.last_button2_press_ms) < DEBOUNCE_MS) {
-		return;
-	}
-	button_state.last_button2_press_ms = now;
-
-	// Single press - adjust diameter if in settings mode
-	if (button_state.in_settings_mode) {
-		wheel_config.diameter_cm = MAX(wheel_config.diameter_cm - 1, MIN_WHEEL_DIAMETER_CM);
-		printk("Wheel diameter: %d cm\n", wheel_config.diameter_cm);
 	}
 }
 
@@ -279,7 +271,7 @@ int main(void)
 			if (ret != 0) {
 				printk("Error %d configuring button1 interrupt\n", ret);
 			} else {
-				gpio_init_callback(&button1_cb_data, button1_pressed,
+				gpio_init_callback(&button1_cb_data, button_pressed,
 						   BIT(button1.pin));
 				gpio_add_callback(button1.port, &button1_cb_data);
 			}
@@ -294,7 +286,7 @@ int main(void)
 			if (ret != 0) {
 				printk("Error %d configuring button2 interrupt\n", ret);
 			} else {
-				gpio_init_callback(&button2_cb_data, button2_pressed,
+				gpio_init_callback(&button2_cb_data, button_pressed,
 						   BIT(button2.pin));
 				gpio_add_callback(button2.port, &button2_cb_data);
 			}
