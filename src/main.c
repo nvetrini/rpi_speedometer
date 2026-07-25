@@ -14,6 +14,7 @@
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/adc.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/settings/settings.h>
 #include <zephyr/sys/atomic.h>
@@ -27,6 +28,12 @@
 #define DEBOUNCE_MS 50
 #define REPORT_INTERVAL_MS 1000
 #define MODE_SWITCH_DELAY_MS 500
+
+/* Battery monitoring constants */
+#define BATTERY_MIN_V 2.0f    /* Voltage at 0% (2x AA depleted) */
+#define BATTERY_MAX_V 3.0f    /* Voltage at 100% (2x AA fresh) */
+#define VOLTAGE_DIVIDER_RATIO (3.0f / 2.0f)  /* V_battery = V_adc * (100k+200k)/200k */
+#define BATTERY_SAMPLE_INTERVAL_S 60  /* Sample battery every 60 seconds */
 
 /* Wheel configuration */
 #define DEFAULT_WHEEL_DIAMETER_CM 660
@@ -67,6 +74,10 @@ static const struct gpio_dt_spec button1 =
 	GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), button1_gpios);
 static const struct gpio_dt_spec button2 =
 	GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), button2_gpios);
+
+/* Battery voltage ADC channel from devicetree */
+static const struct adc_dt_spec battery_adc =
+	ADC_DT_SPEC_GET_BY_IDX(DT_PATH(zephyr_user), 0);
 
 static struct gpio_callback wheel_sensor_cb_data;
 static struct gpio_callback button1_cb_data;
@@ -112,6 +123,42 @@ static void wheel_sensor_triggered(const struct device *dev,
 	wheel_sensor_state.last_trigger_ms = now;
 	atomic_inc(&wheel_sensor_state.revolution_count);
 }
+
+/* Read battery voltage and calculate remaining percentage */
+static void read_and_report_battery(void)
+{
+	if (!device_is_ready(battery_adc.dev)) {
+		return;
+	}
+
+	int16_t adc_value;
+	struct adc_sequence sequence = {
+		.channels = BIT(battery_adc.channel_id),
+		.buffer = &adc_value,
+		.buffer_size = sizeof(adc_value),
+		.resolution = 12,
+	};
+
+	int ret = adc_read(battery_adc.dev, &sequence);
+	if (ret < 0) {
+		printk("Battery ADC read error: %d\n", ret);
+		return;
+	}
+
+	/* Convert ADC value to voltage (12-bit ADC, 3.3V reference) */
+	float adc_voltage = (adc_value * 3.3f) / 4095.0f;
+
+	/* Apply voltage divider ratio: V_battery = V_adc * (R1+R2)/R2 = V_adc * 3/2 */
+	float battery_voltage = adc_voltage * VOLTAGE_DIVIDER_RATIO;
+
+	/* Calculate battery percentage (linear approximation for alkaline 2xAA) */
+	int percentage = (int)((battery_voltage - BATTERY_MIN_V) /
+			(BATTERY_MAX_V - BATTERY_MIN_V) * 100.0f);
+	percentage = CLAMP(percentage, 0, 100);
+
+	printk("Battery: %d%% (%.2fV)\n", percentage, (double)battery_voltage);
+}
+
 
 static void button_pressed(const struct device *dev,
 		   struct gpio_callback *cb,
@@ -297,9 +344,17 @@ int main(void)
 	printk("Press button 1 twice quickly to enter settings mode\n");
 
 	/* Initialize runtime state - already done at file scope */
+	uint32_t battery_sample_counter = 0;
 
 	while (1) {
 		k_msleep(REPORT_INTERVAL_MS);
+
+		// Sample battery voltage every BATTERY_SAMPLE_INTERVAL_S seconds
+		battery_sample_counter++;
+		if (battery_sample_counter >= BATTERY_SAMPLE_INTERVAL_S) {
+			read_and_report_battery();
+			battery_sample_counter = 0;
+		}
 
 		// Skip processing if in settings mode
 		if (button_state.in_settings_mode) {

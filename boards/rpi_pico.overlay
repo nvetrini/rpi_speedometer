@@ -11,6 +11,8 @@
 		wheel-sensor-gpios = <&gpio0 16 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 		button1-gpios = <&gpio0 17 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 		button2-gpios = <&gpio0 18 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+		/* Battery voltage monitoring via ADC0 (GPIO26) */
+		io-channels = <&adc 0>;
 	};
 };
 
