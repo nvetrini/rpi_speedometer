@@ -1,6 +1,7 @@
 /*
- * Simulation overlay mapping to the same paths as rpi_pico.overlay
- * Uses zephyr,user node with the same property names
+ * native_sim 64-bit variant overlay.
+ * Keep the native simulator free of display emulation and provide the
+ * same user-facing GPIO and ADC nodes the application expects.
  */
 / {
 	zephyr,user {
@@ -12,12 +13,31 @@
 		/* Battery ADC channel - maps to channel@0 in adc0 */
 		io-channels = <&adc0 0>;
 	};
+
+	chosen {
+		/delete-property/ zephyr,display;
+	};
 };
 
-/* native_sim.dts already provides gpio0 as a gpio_emul controller
-   and usually an adc0 as zephyr,adc-emul — check your Zephyr version's
-   boards/native/native_sim/native_sim.dts. If adc0 isn't already there,
-   add it yourself here instead of just configuring the channel below. */
+&sdl_dc {
+	status = "disabled";
+};
+
+&spi0 {
+	sdhc0: sdhc@0 {
+		compatible = "zephyr,sdhc-spi-slot";
+		reg = <0>;
+		status = "okay";
+		spi-max-frequency = <24000000>;
+
+		mmc {
+			compatible = "zephyr,sdmmc-disk";
+			disk-name = "SD";
+			status = "okay";
+		};
+	};
+};
+
 &adc0 {
 	#address-cells = <1>;
 	#size-cells = <0>;

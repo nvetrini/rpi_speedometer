@@ -27,6 +27,14 @@
 #include <zephyr/fs/fs_interface.h>
 #include <errno.h>
 
+#if IS_ENABLED(CONFIG_DISPLAY) && IS_ENABLED(CONFIG_CHARACTER_FRAMEBUFFER) && \
+	DT_HAS_CHOSEN(zephyr_display)
+#include <zephyr/display/cfb.h>
+#define APP_HAS_DISPLAY 1
+#else
+#define APP_HAS_DISPLAY 0
+#endif
+
 /* Constants */
 #define MIN_WHEEL_DIAMETER_CM 10
 #define MAX_WHEEL_DIAMETER_CM 100
@@ -57,6 +65,7 @@ struct wheel_sensor_state {
 struct button_state {
 	volatile int64_t last_press_ms[2];
 	volatile bool in_settings_mode;
+	volatile bool save_wheel_diameter_pending;
 	int64_t previous_press_time[2];
 };
 
@@ -69,6 +78,10 @@ struct wheel_config {
 struct runtime_state {
 	uint32_t last_count;
 	uint32_t total_distance_m;
+	float last_speed_kmh;
+	int battery_percentage;
+	float battery_voltage;
+	bool battery_valid;
 };
 
 /* Pulls the gpio spec (port/pin/flags) straight from the devicetree
@@ -92,6 +105,8 @@ static const char *mount_point = "/SD:";
 static struct fs_mount_t sd_fs_mount = {
 	.mnt_point = "/SD:",
 };
+
+static void app_state_work_handler(struct k_work *work);
 
 /* Logging to SD card */
 static struct fs_file_t log_file;
@@ -121,7 +136,13 @@ static struct wheel_config wheel_config = {
 static struct runtime_state runtime_state = {
 	.last_count = 0U,
 	.total_distance_m = 0U,
+	.last_speed_kmh = 0.0f,
+	.battery_percentage = -1,
+	.battery_voltage = 0.0f,
+	.battery_valid = false,
 };
+
+K_WORK_DEFINE(app_state_work, app_state_work_handler);
 
 /* Forward declarations */
 static void save_wheel_diameter_setting(void);
@@ -129,6 +150,8 @@ static int initialize_sd_card(void);
 static int mount_sd_filesystem(void);
 static int open_log_file(void);
 static void log_to_sd(const char *msg);
+static void queue_app_state_update(void);
+static void render_display_status(void);
 
 static void wheel_sensor_triggered(const struct device *dev,
 			    struct gpio_callback *cb,
@@ -179,7 +202,12 @@ static void read_and_report_battery(void)
 			(BATTERY_MAX_V - BATTERY_MIN_V) * 100.0f);
 	percentage = CLAMP(percentage, 0, 100);
 
+	runtime_state.battery_percentage = percentage;
+	runtime_state.battery_voltage = battery_voltage;
+	runtime_state.battery_valid = true;
+
 	printk("Battery: %d%% (%.2fV)\n", percentage, (double)battery_voltage);
+	queue_app_state_update();
 }
 
 
@@ -209,29 +237,34 @@ static void button_pressed(const struct device *dev,
 	button_state.last_press_ms[button_idx] = now;
 
 	if (button_idx == 0) {
-		// Button 1: Check for double-press to enter/exit settings mode
+		/* Button 1: double press toggles settings mode; single press increments diameter. */
 		if ((now - button_state.previous_press_time[button_idx]) < MODE_SWITCH_DELAY_MS) {
 			button_state.in_settings_mode = !button_state.in_settings_mode;
 			if (button_state.in_settings_mode) {
-				printk("Entering settings mode. Current diameter: %d cm\n", wheel_config.diameter_cm);
+				printk("Entering settings mode. Current diameter: %d cm\n",
+				       wheel_config.diameter_cm);
 			} else {
-				printk("Exiting settings mode. Wheel diameter set to: %d cm\n", wheel_config.diameter_cm);
-				// Save the setting
-				save_wheel_diameter_setting();
+				printk("Exiting settings mode. Wheel diameter set to: %d cm\n",
+				       wheel_config.diameter_cm);
+				button_state.save_wheel_diameter_pending = true;
 			}
+			queue_app_state_update();
 		} else {
-			// Single press - adjust diameter if in settings mode
 			if (button_state.in_settings_mode) {
-				wheel_config.diameter_cm = MIN(wheel_config.diameter_cm + 1, MAX_WHEEL_DIAMETER_CM);
+				wheel_config.diameter_cm =
+					MIN(wheel_config.diameter_cm + 1, MAX_WHEEL_DIAMETER_CM);
 				printk("Wheel diameter: %d cm\n", wheel_config.diameter_cm);
+				queue_app_state_update();
 			}
 		}
 		button_state.previous_press_time[button_idx] = now;
 	} else {
-		// Button 2: Single press - adjust diameter if in settings mode
+		/* Button 2: single press decrements diameter in settings mode. */
 		if (button_state.in_settings_mode) {
-			wheel_config.diameter_cm = MAX(wheel_config.diameter_cm - 1, MIN_WHEEL_DIAMETER_CM);
+			wheel_config.diameter_cm =
+				MAX(wheel_config.diameter_cm - 1, MIN_WHEEL_DIAMETER_CM);
 			printk("Wheel diameter: %d cm\n", wheel_config.diameter_cm);
+			queue_app_state_update();
 		}
 	}
 }
@@ -243,7 +276,7 @@ static int settings_wheel_diameter_handler(const char *key, size_t len,
 	int rc;
 	int val;
 
-	if (strncmp(key, "wheel_diameter", len) == 0 && len == strlen("wheel_diameter")) {
+	if (strcmp(key, "wheel_diameter") == 0) {
 		if (len != sizeof(int)) {
 			return -EINVAL;
 		}
@@ -288,6 +321,159 @@ static void load_wheel_diameter_setting(void)
 	if (rc < 0 && rc != -ENOENT) {
 		printk("Failed to load wheel diameter setting: %d\n", rc);
 	}
+}
+
+#if APP_HAS_DISPLAY
+static const struct device *display_dev;
+static uint8_t display_font_height;
+
+static int display_initialize(void)
+{
+	int ret;
+	uint8_t font_width;
+
+	display_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
+	if (!device_is_ready(display_dev)) {
+		printk("Warning: display device not ready\n");
+		display_dev = NULL;
+		return -ENODEV;
+	}
+
+	ret = display_set_pixel_format(display_dev, PIXEL_FORMAT_MONO10);
+	if (ret < 0) {
+		ret = display_set_pixel_format(display_dev, PIXEL_FORMAT_MONO01);
+	}
+	if (ret < 0) {
+		printk("Warning: display does not support mono pixel formats: %d\n", ret);
+		display_dev = NULL;
+		return ret;
+	}
+
+	ret = cfb_framebuffer_init(display_dev);
+	if (ret < 0) {
+		printk("Warning: failed to initialize display framebuffer: %d\n", ret);
+		display_dev = NULL;
+		return ret;
+	}
+
+	ret = cfb_framebuffer_set_font(display_dev, 0);
+	if (ret < 0) {
+		printk("Warning: failed to select default display font: %d\n", ret);
+		display_dev = NULL;
+		return ret;
+	}
+
+	ret = cfb_get_font_size(display_dev, 0, &font_width, &display_font_height);
+	if (ret < 0 || display_font_height == 0U) {
+		display_font_height = 8U;
+	}
+
+	ret = display_blanking_off(display_dev);
+	if (ret < 0 && ret != -ENOSYS) {
+		printk("Warning: failed to unblank display: %d\n", ret);
+	}
+
+	return 0;
+}
+
+static void display_print_lines(const char *line1, const char *line2,
+				const char *line3, const char *line4)
+{
+	int y = 0;
+
+	if (display_dev == NULL) {
+		return;
+	}
+
+	cfb_framebuffer_clear(display_dev, false);
+
+	if (line1 != NULL) {
+		cfb_print(display_dev, line1, 0, y);
+	}
+	y += display_font_height;
+
+	if (line2 != NULL) {
+		cfb_print(display_dev, line2, 0, y);
+	}
+	y += display_font_height;
+
+	if (line3 != NULL) {
+		cfb_print(display_dev, line3, 0, y);
+	}
+	y += display_font_height;
+
+	if (line4 != NULL) {
+		cfb_print(display_dev, line4, 0, y);
+	}
+
+	cfb_framebuffer_finalize(display_dev);
+}
+
+static void render_display_status(void)
+{
+	char line1[32];
+	char line2[32];
+	char line3[32];
+	char line4[32];
+	int speed_whole;
+	unsigned int speed_frac;
+
+	if (display_dev == NULL) {
+		return;
+	}
+
+	if (button_state.in_settings_mode) {
+		snprintk(line1, sizeof(line1), "Settings mode");
+		snprintk(line2, sizeof(line2), "Wheel: %d cm", wheel_config.diameter_cm);
+		snprintk(line3, sizeof(line3), "Btn1 +1  Btn2 -1");
+		snprintk(line4, sizeof(line4), "Double press B1 to exit");
+	} else {
+		speed_whole = (int)runtime_state.last_speed_kmh;
+		speed_frac = (unsigned int)((runtime_state.last_speed_kmh - speed_whole) * 10.0f);
+		if (speed_frac > 9U) {
+			speed_frac = 9U;
+		}
+
+		snprintk(line1, sizeof(line1), "Speed: %d.%01u km/h", speed_whole, speed_frac);
+		snprintk(line2, sizeof(line2), "Distance: %u m", runtime_state.total_distance_m);
+		snprintk(line3, sizeof(line3), "Wheel: %d cm", wheel_config.diameter_cm);
+		if (runtime_state.battery_valid) {
+			snprintk(line4, sizeof(line4), "Battery: %d%% %.2fV",
+				 runtime_state.battery_percentage,
+				 (double)runtime_state.battery_voltage);
+		} else {
+			snprintk(line4, sizeof(line4), "Battery: n/a");
+		}
+	}
+
+	display_print_lines(line1, line2, line3, line4);
+}
+#else
+static int display_initialize(void)
+{
+	return 0;
+}
+
+static void render_display_status(void)
+{
+}
+#endif
+
+static void queue_app_state_update(void)
+{
+	k_work_submit(&app_state_work);
+}
+
+static void app_state_work_handler(struct k_work *work)
+{
+	ARG_UNUSED(work);
+
+	if (button_state.save_wheel_diameter_pending) {
+		button_state.save_wheel_diameter_pending = false;
+		save_wheel_diameter_setting();
+	}
+
+	render_display_status();
 }
 
 /* Initialize SD card over SPI */
@@ -398,6 +584,12 @@ int main(void)
 
 	printk("Wheel diameter: %d cm\n", wheel_config.diameter_cm);
 
+	ret = display_initialize();
+	if (ret < 0) {
+		printk("Warning: display initialization failed, continuing without display\n");
+	}
+	queue_app_state_update();
+
 	// Initialize SD card
 	ret = initialize_sd_card();
 	if (ret < 0) {
@@ -493,7 +685,6 @@ int main(void)
 			battery_sample_counter = 0;
 		}
 
-		// Skip processing if in settings mode
 		if (button_state.in_settings_mode) {
 			continue;
 		}
@@ -506,16 +697,21 @@ int main(void)
 		/* Circumference = π * diameter (convert cm to m) */
 		float circumference_m = 3.1415926535f * (wheel_config.diameter_cm / 100.0f);
 		float distance_this_period_m = delta * circumference_m;
-		runtime_state.total_distance_m += (uint32_t)distance_this_period_m;
+		runtime_state.total_distance_m = (uint32_t)(current_count * circumference_m);
+		runtime_state.last_speed_kmh = (distance_this_period_m /
+						(REPORT_INTERVAL_MS / 1000.0f)) * 3.6f;
 
 		/* speed (km/h) = distance (m) / time (s) * 3.6 */
-		float speed_kmh = (distance_this_period_m /
-				    (REPORT_INTERVAL_MS / 1000.0f)) * 3.6f;
+		float speed_kmh = runtime_state.last_speed_kmh;
+		unsigned int speed_frac = (unsigned int)((speed_kmh - (int)speed_kmh) * 10.0f);
+		if (speed_frac > 9U) {
+			speed_frac = 9U;
+		}
 
 		printk("revs=%u  speed=%d.%01u km/h  distance=%u m  diameter=%d cm\n",
 		       current_count,
 		       (int)speed_kmh,
-		       (unsigned int)((speed_kmh - (int)speed_kmh) * 10),
+		       speed_frac,
 		       runtime_state.total_distance_m,
 		       wheel_config.diameter_cm);
 
@@ -528,6 +724,8 @@ int main(void)
 				runtime_state.total_distance_m, wheel_config.diameter_cm);
 			log_to_sd(log_msg);
 		}
+
+		queue_app_state_update();
 	}
 
 	return 0;

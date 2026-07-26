@@ -60,6 +60,6 @@ minicom -D /dev/ttyACM0 -b 115200
 
 ## Simulation
 
-- run `west build -b native_sim -p` to test
+- run `west build -b native_sim//64 -p` to test
 - launch application with `./build/zephyr/zephyr.exe`
 - attach to UART with e.g. `alacritty -e screen /dev/pts/6`
