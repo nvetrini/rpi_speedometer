@@ -14,6 +14,30 @@
 		/* Battery voltage monitoring via ADC0 (GPIO26) */
 		io-channels = <&adc 0>;
 	};
+
+	chosen {
+		zephyr,display = &display;
+	};
+};
+
+/* Enable I2C for SSD1306 display */
+&i2c0 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	display: ssd1306@3c {
+		compatible = "solomon,ssd1306";
+		reg = <0x3c>;
+		width = <128>;
+		height = <64>;
+		segment-offset = <0>;
+		page-offset = <0>;
+		display-offset = <0>;
+		multiplex-ratio = <63>;
+		segment-remap;
+		com-invdir;
+		prechargep = <0x22>;
+	};
 };
 
 /* Add storage partition for NVS settings to existing flash0 partitions */
@@ -22,7 +46,7 @@
 		compatible = "fixed-partitions";
         #address-cells = <1>;
         #size-cells = <1>;
-		/* Storage partition for NVS settings - 16KB at 128KB offset from flash start */
+			/* Storage partition for NVS settings - 16KB at 128KB offset from flash start */
 		storage_partition: partition@20000 {
 			label = "storage";
 			reg = <0x00020000 0x00004000>;
