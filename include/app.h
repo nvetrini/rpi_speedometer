@@ -62,6 +62,10 @@ struct button_state {
 	volatile bool in_settings_mode;
 	volatile bool save_wheel_diameter_pending;
 	int64_t previous_press_time[2];
+	/* Flags for deferred printing (set in ISR, cleared in main thread) */
+	volatile bool settings_mode_changed;
+	volatile bool diameter_changed;
+	int diameter_value;
 };
 
 /* Wheel configuration */

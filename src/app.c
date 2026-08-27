@@ -28,6 +28,9 @@ static struct button_state button_state = {
 	.in_settings_mode = false,
 	.save_wheel_diameter_pending = false,
 	.previous_press_time = {0, 0},
+	.settings_mode_changed = false,
+	.diameter_changed = false,
+	.diameter_value = DEFAULT_WHEEL_DIAMETER_CM,
 };
 
 static struct wheel_config wheel_config = {
@@ -106,7 +109,8 @@ int app_run(void)
 	/* Initialize battery monitoring */
 	ret = battery_init();
 	if (ret < 0) {
-		console_print_warning("Battery initialization failed, continuing without battery monitoring");
+		console_print_error("Battery initialization failed");
+		return ret;
 	}
 
 	/* Initialize wheel sensor */
@@ -131,11 +135,25 @@ int app_run(void)
 		/* Sample battery voltage periodically */
 		battery_sample_counter++;
 		if (battery_sample_counter >= BATTERY_SAMPLE_INTERVAL_S) {
-			if (battery_init() == 0) {
-				battery_read(&battery_state);
-				console_print_battery(battery_state.percentage, battery_state.voltage);
-			}
+			battery_read(&battery_state);
+			console_print_battery(battery_state.percentage, battery_state.voltage);
 			battery_sample_counter = 0;
+		}
+
+		/* Handle deferred button press messages (from ISR) */
+		if (button_state.settings_mode_changed) {
+			button_state.settings_mode_changed = false;
+			if (button_state.in_settings_mode) {
+				printk("Entering settings mode. Current diameter: %d cm\n",
+					button_state.diameter_value);
+			} else {
+				printk("Exiting settings mode. Wheel diameter set to: %d cm\n",
+					button_state.diameter_value);
+			}
+		}
+		if (button_state.diameter_changed) {
+			button_state.diameter_changed = false;
+			printk("Wheel diameter: %d cm\n", button_state.diameter_value);
 		}
 
 		/* If in settings mode, skip speed calculation but still update display */

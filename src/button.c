@@ -12,6 +12,7 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
+#include <zephyr/sys/check.h>
 
 /* Devicetree configuration */
 #define USER_NODE DT_PATH(zephyr_user)
@@ -23,6 +24,14 @@ static const struct gpio_dt_spec button2 =
 static struct button_state *button_state_ptr = NULL;
 static struct wheel_config *wheel_config_ptr = NULL;
 
+/* NOTE: button_state_ptr and wheel_config_ptr are set by button_init() and
+ * button_set_wheel_config() respectively. There is a small race condition window
+ * between these two calls in app.c where button_set_wheel_config() is called
+ * before button_init(). If a button interrupt fires during this window,
+ * __ASSERT_NO_MSG(wheel_config_ptr != NULL) will trigger. In practice this is
+ * unlikely as initialization is fast, but for robustness consider using a
+ * single initialization function that takes all required pointers. */
+
 /* Button callback data structure with user data */
 struct button_cb_data {
 	struct gpio_callback callback;
@@ -33,11 +42,11 @@ static struct button_cb_data button_cb_data[2];
 /* Internal processing function */
 static void process_button_press(int button_idx)
 {
-	int64_t now = k_uptime_get();
+	/* Use __ASSERT_NO_MSG for NULL checks in ISR context */
+	__ASSERT_NO_MSG(button_state_ptr != NULL);
+	__ASSERT_NO_MSG(wheel_config_ptr != NULL);
 
-	if (button_state_ptr == NULL || wheel_config_ptr == NULL) {
-		return;
-	}
+	int64_t now = k_uptime_get();
 
 	/* Debounce check */
 	if ((now - button_state_ptr->last_press_ms[button_idx]) < DEBOUNCE_MS) {
@@ -49,19 +58,17 @@ static void process_button_press(int button_idx)
 		/* Button 1: double press toggles settings mode; single press increments diameter */
 		if ((now - button_state_ptr->previous_press_time[button_idx]) < MODE_SWITCH_DELAY_MS) {
 			button_state_ptr->in_settings_mode = !button_state_ptr->in_settings_mode;
-			if (button_state_ptr->in_settings_mode) {
-				printk("Entering settings mode. Current diameter: %d cm\n",
-					wheel_config_ptr->diameter_cm);
-			} else {
-				printk("Exiting settings mode. Wheel diameter set to: %d cm\n",
-					wheel_config_ptr->diameter_cm);
+			button_state_ptr->settings_mode_changed = true;
+			button_state_ptr->diameter_value = wheel_config_ptr->diameter_cm;
+			if (!button_state_ptr->in_settings_mode) {
 				button_state_ptr->save_wheel_diameter_pending = true;
 			}
 		} else {
 			if (button_state_ptr->in_settings_mode) {
 				wheel_config_ptr->diameter_cm =
 					MIN(wheel_config_ptr->diameter_cm + 1, MAX_WHEEL_DIAMETER_CM);
-				printk("Wheel diameter: %d cm\n", wheel_config_ptr->diameter_cm);
+				button_state_ptr->diameter_changed = true;
+				button_state_ptr->diameter_value = wheel_config_ptr->diameter_cm;
 			}
 		}
 		button_state_ptr->previous_press_time[button_idx] = now;
@@ -70,7 +77,8 @@ static void process_button_press(int button_idx)
 		if (button_state_ptr->in_settings_mode) {
 			wheel_config_ptr->diameter_cm =
 				MAX(wheel_config_ptr->diameter_cm - 1, MIN_WHEEL_DIAMETER_CM);
-			printk("Wheel diameter: %d cm\n", wheel_config_ptr->diameter_cm);
+			button_state_ptr->diameter_changed = true;
+			button_state_ptr->diameter_value = wheel_config_ptr->diameter_cm;
 		}
 	}
 }

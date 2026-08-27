@@ -26,17 +26,15 @@ int wheel_sensor_init(struct wheel_sensor_state *sensor_state)
 
 	sensor_state_ptr = sensor_state;
 
-	sensor_state_ptr = sensor_state;
-
 	/* Configure wheel sensor GPIO */
 	ret = gpio_pin_configure_dt(&wheel_sensor, GPIO_INPUT);
 	if (ret != 0) {
 		return ret;
 	}
 
-	/* Configure interrupt */
+	/* Configure interrupt - use both edges to catch all transitions */
 	ret = gpio_pin_interrupt_configure_dt(&wheel_sensor,
-				GPIO_INT_EDGE_TO_ACTIVE);
+				GPIO_INT_EDGE_BOTH);
 	if (ret != 0) {
 		return ret;
 	}

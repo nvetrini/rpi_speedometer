@@ -88,7 +88,14 @@ int storage_sd_init(void)
 		return -ENODEV;
 	}
 
-	printk("SD card device found and ready\n");
+	/* Mount the filesystem */
+	int ret = fs_mount(&sd_fs_mount);
+	if (ret < 0) {
+		printk("Error: Failed to mount filesystem: %d\n", ret);
+		return ret;
+	}
+
+	printk("SD card device found, mounted, and ready\n");
 	return 0;
 }
 
@@ -96,6 +103,11 @@ int storage_log_open(void)
 {
 	int ret;
 	char logs_dir_path[20];
+
+	/* Close any previously opened log file */
+	if (log_file.mp != NULL) {
+		fs_close(&log_file);
+	}
 
 	/* Initialize file object */
 	fs_file_t_init(&log_file);

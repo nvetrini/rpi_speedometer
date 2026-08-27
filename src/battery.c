@@ -54,7 +54,11 @@ int battery_read(struct battery_state *battery_state)
 
 float battery_adc_to_voltage(int16_t adc_value)
 {
-	/* Convert ADC value to voltage (12-bit ADC, 3.3V reference) */
+	/* Convert ADC value to voltage (12-bit ADC, 3.3V reference)
+	 * NOTE: The 3.3V reference is hardcoded. The actual RP2040 ADC reference
+	 * can vary by +/- 1-2% which will cause a systematic offset in battery
+	 * voltage readings. For more accurate readings, consider reading the
+	 * actual Vref from ADC calibration data. */
 	float adc_voltage = (adc_value * 3.3f) / 4095.0f;
 
 	/* Apply voltage divider ratio: V_battery = V_adc * (R1+R2)/R2 */
