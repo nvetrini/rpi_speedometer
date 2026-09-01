@@ -174,8 +174,8 @@ void console_print_settings_mode(bool in_settings_mode, int diameter_cm);
 void console_print_diameter(int diameter_cm);
 void console_print_battery(int percentage, float voltage);
 void console_print_init(int diameter_cm);
-void console_print_error(const char *msg);
-void console_print_warning(const char *msg);
+void console_print_error(const char *msg, int errno_code);
+void console_print_warning(const char *msg, int errno_code);
 ```
 
 **Details:**

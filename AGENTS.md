@@ -178,7 +178,7 @@ struct runtime_state {
 
 ### Development Workflow Notes
 
-1. **Testing Changes:** Use `native_sim//64` board for rapid iteration
+1. **Testing Changes:** Use `native_sim/native/64` board for rapid iteration
 2. **Simulating Input:** Use `sim` shell commands to test without hardware
 3. **Devicetree Changes:** Modify overlays, not application code, for pin changes
 4. **Adding Features:**
@@ -226,7 +226,101 @@ struct runtime_state {
 │   ├── rpi_pico.overlay  # Pico devicetree overlay
 │   ├── native_sim_64.overlay  # Simulation devicetree
 │   └── native_sim.conf   # Simulation Kconfig
-└── src/
-    ├── main.c            # Main application
-    └── sim_shell.c       # Simulation shell commands
+├── src/
+│   ├── main.c            # Main application
+│   ├── app.c             # Application coordination
+│   ├── wheel_sensor.c    # Wheel sensor module
+│   ├── button.c          # Button input module
+│   ├── battery.c         # Battery monitoring module
+│   ├── speed_calculator.c # Speed/distance calculation
+│   ├── display_output.c  # Display output module
+│   ├── console_output.c  # Console output module
+│   └── storage.c         # Storage/NVS/SD card module
+└── tests/               # Unit test suite
+    ├── CMakeLists.txt     # Test build configuration
+    ├── prj_test.conf     # Test-specific project configuration
+    ├── twister.yml       # Twister test runner configuration
+    ├── test_wheel_sensor/ # Wheel sensor tests
+    ├── test_battery/      # Battery tests
+    ├── test_storage/      # Storage/NVS tests
+    ├── test_sd_card/      # SD card filesystem tests
+    ├── test_speed_calculator/ # Speed calculation tests
+    └── test_display/      # Display tests
 ```
+
+## Testing Framework
+
+### Test Architecture
+
+The project uses **Zephyr's integrated testing framework** with:
+- **ztest**: Zephyr's unit testing framework
+- **Twister**: Python-based test runner and automation tool
+- **Native Simulation**: `native_sim/native/64` platform for hardware-independent testing (64-bit LP64 ABI)
+
+### Test Organization
+
+Each test module follows the same structure:
+```
+tests/test_<module>/
+├── CMakeLists.txt      # Build configuration for this test module
+├── include/           # Test headers
+│   └── test_<module>.h
+└── src/
+    ├── test_<module>.c # Main test cases
+    └── mocks.c         # Mock implementations for hardware dependencies
+```
+
+### Test Modules
+
+| Module | Files | Focus Areas |
+|--------|-------|-------------|
+| Wheel Sensor | `test_wheel_sensor.c`, `mocks.c` | GPIO interrupts, atomic counting, debounce logic |
+| Battery | `test_battery.c`, `mocks.c` | ADC conversion, voltage to percentage, bounds checking |
+| Storage | `test_storage.c`, `mocks.c` | NVS settings, configuration validation, error handling |
+| SD Card | `test_sd_card.c`, `mocks.c` | Filesystem mount, file I/O, directory creation, error codes |
+| Speed Calculator | `test_speed_calculator.c` | Speed/distance algorithms, parameter variations |
+| Display | `test_display.c`, `mocks.c` | Rendering logic, state management |
+
+### Mocking Strategy
+
+Each test module includes mock implementations that simulate:
+- **Success scenarios**: Normal operation with expected return values
+- **Failure scenarios**: Error conditions with appropriate errno codes
+- **Edge cases**: Boundary conditions and invalid inputs
+
+### Test Commands
+
+```bash
+# Run all tests with west
+west twister -p native_sim/native/64 -P tests
+
+# Run specific test scenario (recommended)
+west twister -p native_sim/native/64 -P tests -s wheel_sensor_tests
+
+# Run with verbose output
+west twister -p native_sim/native/64 -P tests -v
+
+# Manual build and run
+west build -b native_sim/native/64 -P tests tests
+./build/tests/test_wheel_sensor/zephyr/zephyr.exe
+```
+
+### Adding New Tests
+
+1. **Create test directory**: `mkdir -p tests/test_<new_module>/src tests/test_<new_module>/include`
+2. **Add CMakeLists.txt**: Configure test sources and dependencies
+3. **Create test header**: Define test helper functions in `include/test_<module>.h`
+4. **Implement test cases**: Use `ZTEST()` and `ZTEST_SUITE()` macros in `src/test_<module>.c`
+5. **Add mocks**: Implement hardware mocks in `src/mocks.c`
+6. **Update parent CMakeLists.txt**: Add `add_subdirectory(test_<new_module>)`
+7. **Update configuration**: Add test-specific Kconfig options to `tests/prj_test.conf`
+8. **Update twister.yml**: Add test scenarios for the new module
+
+### Test Assertions
+
+Use Zephyr's ztest assertions:
+- `zassert_equal(actual, expected, message)` - Value equality
+- `zassert_true(condition, message)` - Boolean condition
+- `zassert_false(condition, message)` - Boolean condition
+- `zassert_is_null(ptr, message)` - Null pointer check
+- `zassert_not_null(ptr, message)` - Non-null pointer check

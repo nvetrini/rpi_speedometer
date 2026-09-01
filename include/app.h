@@ -29,7 +29,7 @@
 /* Wheel configuration limits */
 #define MIN_WHEEL_DIAMETER_CM    10
 #define MAX_WHEEL_DIAMETER_CM    100
-#define DEFAULT_WHEEL_DIAMETER_CM 660
+#define DEFAULT_WHEEL_DIAMETER_CM 66
 
 /* Timing constants */
 #define DEBOUNCE_MS              50
@@ -119,5 +119,10 @@ static inline void button_clear_save_pending(struct button_state *button_state)
 {
 	button_state->save_wheel_diameter_pending = false;
 }
+
+/**
+ * @brief Application entry point
+ */
+int app_run(void);
 
 #endif /* APP_H */

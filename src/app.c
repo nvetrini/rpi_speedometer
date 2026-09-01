@@ -79,7 +79,7 @@ int app_run(void)
 	/* Initialize storage/NVS first so settings can be loaded */
 	ret = storage_init(&wheel_config);
 	if (ret < 0) {
-		console_print_error("Storage initialization failed");
+		console_print_error("Storage initialization failed", -ret);
 		return ret;
 	}
 
@@ -88,7 +88,7 @@ int app_run(void)
 	/* Initialize display */
 	ret = display_init();
 	if (ret < 0) {
-		console_print_warning("Display initialization failed, continuing without display");
+		console_print_warning("Display initialization failed, continuing without display", -ret);
 	} else {
 		queue_app_state_update();
 	}
@@ -96,11 +96,11 @@ int app_run(void)
 	/* Initialize SD card for logging */
 	ret = storage_sd_init();
 	if (ret < 0) {
-		console_print_warning("SD card initialization failed, continuing without SD card");
+		console_print_warning("SD card initialization failed, continuing without SD card", -ret);
 	} else {
 		ret = storage_log_open();
 		if (ret < 0) {
-			console_print_warning("Failed to open log file, continuing without SD card logging");
+			console_print_warning("Failed to open log file, continuing without SD card logging", -ret);
 		} else {
 			printk("SD card logging initialized\n");
 		}
@@ -109,14 +109,14 @@ int app_run(void)
 	/* Initialize battery monitoring */
 	ret = battery_init();
 	if (ret < 0) {
-		console_print_error("Battery initialization failed");
+		console_print_error("Battery initialization failed", -ret);
 		return ret;
 	}
 
 	/* Initialize wheel sensor */
 	ret = wheel_sensor_init(&wheel_sensor_state);
 	if (ret < 0) {
-		console_print_error("Wheel sensor initialization failed");
+		console_print_error("Wheel sensor initialization failed", -ret);
 		return ret;
 	}
 
@@ -124,7 +124,7 @@ int app_run(void)
 	button_set_wheel_config(&wheel_config);
 	ret = button_init(&button_state);
 	if (ret < 0) {
-		console_print_warning("Button initialization failed, continuing without buttons");
+		console_print_warning("Button initialization failed, continuing without buttons", -ret);
 	}
 
 	uint32_t battery_sample_counter = 0;

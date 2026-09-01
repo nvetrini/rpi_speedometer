@@ -6,8 +6,6 @@
 
 #include "app.h"
 
-int app_run(void);  // Forward declaration
-
 int main(void)
 {
 	return app_run();

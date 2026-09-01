@@ -63,3 +63,152 @@ minicom -D /dev/ttyACM0 -b 115200
 - run `west build -b native_sim//64 -p` to test
 - launch application with `./build/zephyr/zephyr.exe`
 - attach to UART with e.g. `alacritty -e screen /dev/pts/6`
+
+## Testing
+
+The project includes a comprehensive unit test suite using Zephyr's **ztest** framework and **Twister** test runner.
+
+### Test Structure
+
+Tests are organized in the `tests/` directory with the following modules:
+
+| Test Module | Description | Key Tests |
+|-------------|-------------|-----------|
+| `test_wheel_sensor` | Wheel revolution counting and sensor logic | Initialization, counting, atomic operations, debounce timing |
+| `test_battery` | Battery monitoring and voltage conversion | Voltage to percentage, ADC conversion, bounds checking |
+| `test_storage` | NVS settings storage | Configuration validation, persistence simulation, error handling |
+| `test_sd_card` | SD card filesystem operations | Mounting, file creation, read/write operations, error codes |
+| `test_speed_calculator` | Speed and distance calculations | Zero/constant/increasing revolutions, different diameters and intervals |
+| `test_display` | Display rendering and state management | Initialization, rendering modes, data validation |
+
+### Running Tests
+
+#### Method 1: Using West (Recommended)
+
+```bash
+# Run all tests on native_sim/native/64 (64-bit)
+west twister -p native_sim/native/64 -P tests
+
+
+**FIXME** Doesn't seem to be the right way to run subsets of tests
+
+# Run specific test scenario (recommended)
+west twister -p native_sim/native/64 -P tests -s wheel_sensor_tests
+
+# Run with verbose output
+west twister -p native_sim/native/64 -P tests -v
+
+# Run with custom configuration
+west twister -p native_sim/native/64 -P tests -c tests/prj_test.conf
+```
+
+#### Method 2: Using Twister Directly
+
+```bash
+# Run all tests
+twister -p tests -P native_sim/native/64
+
+# Run specific test scenario
+twister -p tests -s wheel_sensor_tests
+
+# Run with custom YAML config
+twister -p tests -c tests/twister.yml
+```
+
+#### Method 3: Manual Build and Run
+
+```bash
+# Build and run all tests
+west build -b native_sim/native/64 -P tests tests
+
+# Run specific test executable
+./build/tests/test_wheel_sensor/zephyr/zephyr.exe
+```
+
+### Test Configuration
+
+- **Test Framework**: Zephyr ztest
+- **Test Runner**: Twister
+- **Platform**: `native_sim/native/64` (64-bit native simulation with LP64 ABI)
+- **Configuration**: `tests/prj_test.conf`
+- **Twister Config**: `tests/twister.yml`
+
+### Writing New Tests
+
+1. Create a new test directory under `tests/test_<module>/`
+2. Add a `CMakeLists.txt` file that includes your test source files
+3. Create test source files using the `ZTEST()` macro
+4. Add mock implementations for hardware dependencies in `src/mocks.c`
+5. Update `tests/CMakeLists.txt` to include your test module
+6. Add test configuration to `tests/prj_test.conf` and `tests/twister.yml`
+
+### Test Examples
+
+```c
+#include <ztest.h>
+#include "module.h"
+
+ZTEST(module_test, test_functionality)
+{
+    // Test setup
+    int result = function_under_test();
+    
+    // Assertions
+    zassert_equal(result, expected_value, "Function should return expected value");
+    zassert_true(condition, "Condition should be true");
+}
+
+ZTEST_SUITE(module_test, NULL, setup, NULL, NULL, teardown);
+```
+
+### Mocking Hardware Dependencies
+
+Each test module includes a `mocks.c` file that provides mock implementations for:
+- GPIO operations
+- ADC readings  
+- Filesystem operations
+- Display functions
+- Device readiness checks
+
+Use the mock functions to simulate both success and failure scenarios.
+
+### Code Coverage
+
+The test suite includes **code coverage support** using gcov/lcov/genhtml. Coverage is configured in `tests/twister.yml`.
+
+#### Coverage Commands
+
+```bash
+# Run tests with coverage and generate HTML report
+./tests/build_tests.sh coverage
+
+# Open coverage report in browser
+./tests/build_tests.sh coverage-open
+
+# Manual coverage generation (if needed)
+cd build/tests
+lcov --capture --directory . --output-file coverage.info
+genhtml coverage.info --output-directory coverage_html
+```
+
+#### Coverage Requirements
+
+- **gcov**: Usually comes with GCC
+- **lcov**: Install with `sudo apt-get install lcov` (Ubuntu/Debian)
+- **genhtml**: Part of lcov package
+
+#### Coverage Configuration
+
+The coverage configuration in `tests/twister.yml` includes:
+- **Tool**: gcov
+- **Reports**: HTML and XML formats
+- **Output**: `coverage_results/` directory
+- **Thresholds**: 80% line, 70% branch, 85% function coverage
+- **Exclusions**: Test files and mocks are excluded from coverage
+
+#### Coverage Targets
+
+Coverage is measured for:
+- `src/` - All source files
+- `include/` - All header files
+- Excludes test files and mock implementations

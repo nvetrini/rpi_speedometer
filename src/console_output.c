@@ -6,6 +6,7 @@
 
 #include "console_output.h"
 #include <zephyr/sys/printk.h>
+#include <zephyr/sys/errno.h>
 
 void console_print_status(uint32_t current_count, float speed_kmh,
 		uint32_t total_distance_m, int wheel_diameter_cm)
@@ -49,12 +50,20 @@ void console_print_init(int diameter_cm)
 	printk("Press button 1 twice quickly to enter settings mode\n");
 }
 
-void console_print_error(const char *msg)
+void console_print_error(const char *msg, int errno_code)
 {
-	printk("Error: %s\n", msg);
+	if (errno_code != 0) {
+		printk("Error: %s: %s (%d)\n", msg, errno_to_str(errno_code), errno_code);
+	} else {
+		printk("Error: %s\n", msg);
+	}
 }
 
-void console_print_warning(const char *msg)
+void console_print_warning(const char *msg, int errno_code)
 {
-	printk("Warning: %s\n", msg);
+	if (errno_code != 0) {
+		printk("Warning: %s: %s (%d)\n", msg, errno_to_str(errno_code), errno_code);
+	} else {
+		printk("Warning: %s\n", msg);
+	}
 }

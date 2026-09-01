@@ -1,0 +1,123 @@
+# Twister configuration for wheel sensor speedometer tests
+# This file configures test scenarios, platforms, and test cases
+
+# Test scenarios
+scenarios:
+  - name: all_tests
+    description: Run all unit tests on native_sim/native/64
+    platforms:
+      - native_sim/native/64
+    tags: unit
+    build_only: false
+    
+  - name: wheel_sensor_tests
+    description: Run wheel sensor tests only
+    platforms:
+      - native_sim/native/64
+    tags: wheel_sensor
+    build_only: false
+    filter: test_wheel_sensor
+    
+  - name: battery_tests
+    description: Run battery tests only
+    platforms:
+      - native_sim/native/64
+    tags: battery
+    build_only: false
+    filter: test_battery
+    
+  - name: storage_tests
+    description: Run storage tests only
+    platforms:
+      - native_sim/native/64
+    tags: storage
+    build_only: false
+    filter: test_storage
+    
+  - name: sd_card_tests
+    description: Run SD card tests only
+    platforms:
+      - native_sim/native/64
+    tags: sd_card
+    build_only: false
+    filter: test_sd_card
+    
+  - name: speed_calculator_tests
+    description: Run speed calculator tests only
+    platforms:
+      - native_sim/native/64
+    tags: speed_calculator
+    build_only: false
+    filter: test_speed_calculator
+    
+  - name: display_tests
+    description: Run display tests only
+    platforms:
+      - native_sim/native/64
+    tags: display
+    build_only: false
+    filter: test_display
+
+# Platform-specific configurations
+platforms:
+  native_sim/native/64:
+    timeout: 60
+    build_dir: build/tests/native_sim
+    arch: x86_64
+    
+# Test filtering
+test_filter:
+  # Include all tests by default
+  - include:
+      - test_*
+  
+  # Exclude integration tests when running unit tests
+  - exclude:
+      - integration_*
+
+# Test configuration
+config:
+  # Use the test-specific project configuration
+  project_config: tests/prj_test.conf
+  
+  # Additional Kconfig overrides for testing
+  kconfig:
+    - CONFIG_TEST=y
+    - CONFIG_ZTEST=y
+    - CONFIG_ZTEST_MULTITHREADING=y
+    - CONFIG_CODE_COVERAGE=y
+    - CONFIG_CODE_COVERAGE_GCOV=y
+
+# Test output configuration
+output:
+  # Verbose output for debugging
+  verbose: true
+  
+  # Save test results
+  save_results: true
+  results_dir: test_results
+
+# Coverage configuration
+coverage:
+  enable: true
+  tool: gcov
+  reports:
+    - html
+    - xml
+  # Coverage output directory
+  output_dir: coverage_results
+  # Source directories to include in coverage
+  source_dirs:
+    - src
+    - include
+  # Exclude test files from coverage
+  exclude_patterns:
+    - "*/tests/*"
+    - "*/test_*"
+    - "*_test.c"
+    - "*mock*"
+  # Coverage thresholds (optional)
+  thresholds:
+    line: 80
+    branch: 70
+    function: 85
