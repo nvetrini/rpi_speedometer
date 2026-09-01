@@ -49,7 +49,7 @@ usage() {
     echo "  $0 all                    # Build and run all tests"
     echo "  $0 -p build               # Pristine build of all tests"
     echo "  $0 wheel_sensor            # Build and run wheel sensor tests"
-    echo "  $0 -b native_sim/native/64 -v run    # Run tests with verbose output"
+    echo "  $0 -v run                 # Run tests with verbose output"
 }
 
 # Parse options
@@ -114,12 +114,12 @@ clean() {
 # Build function
 build() {
     local target="$1"
-    local build_cmd="west build -b $BOARD -P $TEST_DIR"
+    local build_cmd="west build -b $BOARD"
     
     if [ "$target" = "all" ] || [ -z "$target" ]; then
         build_cmd="$build_cmd $PROJECT_DIR"
     else
-        build_cmd="$build_cmd $PROJECT_DIR/tests/test_$target"
+        build_cmd="$build_cmd $PROJECT_DIR"
     fi
     
     if [ "$CLEAN" = true ]; then
@@ -141,12 +141,10 @@ build() {
 # Run function
 run() {
     local target="$1"
-    local run_cmd="west twister -p $BOARD -P $TEST_DIR"
+    local run_cmd="west twister -p $PROJECT_DIR -T $TEST_DIR --platform $BOARD"
     
-    if [ "$target" = "all" ] || [ -z "$target" ]; then
-        run_cmd="$run_cmd"
-    else
-        run_cmd="$run_cmd -n test_$target"
+    if [ "$target" != "all" ] && [ -n "$target" ]; then
+        run_cmd="$run_cmd --test-pattern test_${target}.*"
     fi
     
     if [ "$VERBOSE" = true ]; then
@@ -166,17 +164,17 @@ build_and_run() {
     run "$target"
 }
 
-# Run with specific scenario function
-run_scenario() {
-    local scenario="$1"
-    local run_cmd="west twister -p $BOARD -P $TEST_DIR -s $scenario"
+# Run with specific test name function
+run_test_name() {
+    local test_name="$1"
+    local run_cmd="west twister -p $PROJECT_DIR -T $TEST_DIR --platform $BOARD --test-pattern $test_name"
     
     if [ "$VERBOSE" = true ]; then
-        print_status "$YELLOW" "Running $scenario..."
+        print_status "$YELLOW" "Running $test_name..."
         echo "Command: $run_cmd"
         $run_cmd
     else
-        print_status "$YELLOW" "Running $scenario..."
+        print_status "$YELLOW" "Running $test_name..."
         $run_cmd
     fi
 }
@@ -201,27 +199,27 @@ case $COMMAND in
         ;;
     wheel_sensor)
         print_status "$YELLOW" "Building and running wheel sensor tests..."
-        run_scenario "wheel_sensor_tests"
+        run_test_name "test_wheel_sensor.*"
         ;;
     battery)
         print_status "$YELLOW" "Building and running battery tests..."
-        run_scenario "battery_tests"
+        run_test_name "test_battery.*"
         ;;
     storage)
         print_status "$YELLOW" "Building and running storage tests..."
-        run_scenario "storage_tests"
+        run_test_name "test_storage.*"
         ;;
     sd_card)
         print_status "$YELLOW" "Building and running SD card tests..."
-        run_scenario "sd_card_tests"
+        run_test_name "test_sd_card.*"
         ;;
     speed_calculator)
         print_status "$YELLOW" "Building and running speed calculator tests..."
-        run_scenario "speed_calculator_tests"
+        run_test_name "test_speed_calculator.*"
         ;;
     display)
         print_status "$YELLOW" "Building and running display tests..."
-        run_scenario "display_tests"
+        run_test_name "test_display.*"
         ;;
     clean)
         clean

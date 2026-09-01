@@ -86,40 +86,43 @@ Tests are organized in the `tests/` directory with the following modules:
 #### Method 1: Using West (Recommended)
 
 ```bash
+# Run from application root directory
+cd /path/to/rpi_speedometer
+
 # Run all tests on native_sim/native/64 (64-bit)
-west twister -p native_sim/native/64 -P tests
+west twister -p . -T tests --platform native_sim/native/64
 
-
-**FIXME** Doesn't seem to be the right way to run subsets of tests
-
-# Run specific test scenario (recommended)
-west twister -p native_sim/native/64 -P tests -s wheel_sensor_tests
+# Run specific test by name pattern
+west twister -p . -T tests --platform native_sim/native/64 --test-pattern "test_wheel_sensor.*"
 
 # Run with verbose output
-west twister -p native_sim/native/64 -P tests -v
+west twister -p . -T tests --platform native_sim/native/64 -v
 
 # Run with custom configuration
-west twister -p native_sim/native/64 -P tests -c tests/prj_test.conf
+west twister -p . -T tests --platform native_sim/native/64 -c tests/twister.yml
 ```
 
 #### Method 2: Using Twister Directly
 
 ```bash
-# Run all tests
-twister -p tests -P native_sim/native/64
+# Run from application root directory
+cd /path/to/rpi_speedometer
 
-# Run specific test scenario
-twister -p tests -s wheel_sensor_tests
+# Run all tests
+twister -p . -T tests --platform native_sim/native/64
+
+# Run specific test by name pattern
+twister -p . -T tests --platform native_sim/native/64 --test-pattern "test_wheel_sensor.*"
 
 # Run with custom YAML config
-twister -p tests -c tests/twister.yml
+twister -p . -T tests --platform native_sim/native/64 -c tests/twister.yml
 ```
 
 #### Method 3: Manual Build and Run
 
 ```bash
 # Build and run all tests
-west build -b native_sim/native/64 -P tests tests
+west build -b native_sim/native/64 -P tests .
 
 # Run specific test executable
 ./build/tests/test_wheel_sensor/zephyr/zephyr.exe

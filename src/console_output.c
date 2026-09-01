@@ -6,7 +6,7 @@
 
 #include "console_output.h"
 #include <zephyr/sys/printk.h>
-#include <zephyr/sys/errno.h>
+#include <errno.h>
 
 void console_print_status(uint32_t current_count, float speed_kmh,
 		uint32_t total_distance_m, int wheel_diameter_cm)

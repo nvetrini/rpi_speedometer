@@ -291,18 +291,21 @@ Each test module includes mock implementations that simulate:
 ### Test Commands
 
 ```bash
-# Run all tests with west
-west twister -p native_sim/native/64 -P tests
+# Run from application root directory
+cd /path/to/rpi_speedometer
 
-# Run specific test scenario (recommended)
-west twister -p native_sim/native/64 -P tests -s wheel_sensor_tests
+# Run all tests with west
+west twister -p . -T tests --platform native_sim/native/64
+
+# Run specific test by name pattern
+west twister -p . -T tests --platform native_sim/native/64 --test-pattern "test_wheel_sensor.*"
 
 # Run with verbose output
-west twister -p native_sim/native/64 -P tests -v
+west twister -p . -T tests --platform native_sim/native/64 -v
 
 # Manual build and run
-west build -b native_sim/native/64 -P tests tests
-./build/tests/test_wheel_sensor/zephyr/zephyr.exe
+west build -b native_sim/native/64 .
+./build/zephyr/zephyr.exe
 ```
 
 ### Adding New Tests

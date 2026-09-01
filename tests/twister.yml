@@ -1,6 +1,10 @@
 # Twister configuration for wheel sensor speedometer tests
 # This file configures test scenarios, platforms, and test cases
 
+# Note: This configuration is for application-specific tests
+# Run from the application root directory with:
+# west twister -p native_sim/native/64 --testsuite-root tests
+
 # Test scenarios
 scenarios:
   - name: all_tests
