@@ -1,0 +1,18 @@
+common:
+  tags:
+    - unit
+    - application
+    - sd_card
+    - filesystem
+    - fs
+  depends_on: ztest
+
+tests:
+  app.sd_card:
+    tags:
+      - sd_card
+      - filesystem
+      - fs
+    min_ram: 8
+    timeout: 30
+    filter: test_sd_card

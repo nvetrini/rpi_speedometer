@@ -1,0 +1,18 @@
+common:
+  tags:
+    - unit
+    - application
+    - display
+    - ui
+    - output
+  depends_on: ztest
+
+tests:
+  app.display:
+    tags:
+      - display
+      - ui
+      - output
+    min_ram: 8
+    timeout: 30
+    filter: test_display

@@ -1,0 +1,18 @@
+common:
+  tags:
+    - unit
+    - application
+    - speed_calculator
+    - calculation
+    - math
+  depends_on: ztest
+
+tests:
+  app.speed_calculator:
+    tags:
+      - speed_calculator
+      - calculation
+      - math
+    min_ram: 8
+    timeout: 30
+    filter: test_speed_calculator

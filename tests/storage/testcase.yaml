@@ -1,0 +1,18 @@
+common:
+  tags:
+    - unit
+    - application
+    - storage
+    - nvs
+    - settings
+  depends_on: ztest
+
+tests:
+  app.storage:
+    tags:
+      - storage
+      - nvs
+      - settings
+    min_ram: 8
+    timeout: 30
+    filter: test_storage
