@@ -7,6 +7,7 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/device.h>
 #include <app.h>
+#include <wheel_sensor.h>
 
 /* Mock device for testing */
 static const struct device *mock_gpio_dev;
@@ -71,6 +72,15 @@ void mock_simulate_gpio_interrupt(void)
     if (mock_callback.handler) {
         mock_callback.handler(mock_gpio_dev, &mock_callback, 0);
     }
+}
+
+/* Mock implementation of wheel_sensor_get_count */
+uint32_t wheel_sensor_get_count(const struct wheel_sensor_state *sensor_state)
+{
+    if (sensor_state) {
+        return atomic_get(&sensor_state->revolution_count);
+    }
+    return 0;
 }
 
 /* Function to reset all mocks */

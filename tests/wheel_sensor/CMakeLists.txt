@@ -9,5 +9,3 @@ target_sources(app PRIVATE ${app_sources})
 
 include_directories(${CMAKE_SOURCE_DIR}/../../include
     ${CMAKE_SOURCE_DIR}/../../src)
-
-zephyr_link_libraries(ztest)

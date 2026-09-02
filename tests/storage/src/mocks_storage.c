@@ -16,7 +16,7 @@ static struct settings_handler mock_settings_handler;
 static const struct device *mock_flash_dev;
 
 /* Mock filesystem mount */
-static struct fs_mount_t mock_fs_mount;
+static struct fs_mount_t mock_mount;
 
 /* Mock file object */
 static struct fs_file_t mock_file;
@@ -49,7 +49,7 @@ void mock_settings_subsys_init(void)
 /* Mock fs_mount function */
 int mock_fs_mount(struct fs_mount_t *mp)
 {
-    *mp = mock_fs_mount;
+    *mp = mock_mount;
     return 0; /* Success */
 }
 
@@ -113,6 +113,6 @@ void mock_reset_all(void)
 {
     memset(&mock_settings_handler, 0, sizeof(mock_settings_handler));
     mock_flash_dev = NULL;
-    memset(&mock_fs_mount, 0, sizeof(mock_fs_mount));
+    memset(&mock_mount, 0, sizeof(mock_mount));
     memset(&mock_file, 0, sizeof(mock_file));
 }

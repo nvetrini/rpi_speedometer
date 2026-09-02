@@ -7,6 +7,7 @@
 #include <zephyr/drivers/adc.h>
 #include <zephyr/device.h>
 #include <app.h>
+#include <battery.h>
 
 /* Mock ADC device */
 static const struct device *mock_adc_dev;
@@ -51,6 +52,23 @@ void mock_set_adc_device(const struct device *dev)
 const struct device *mock_get_adc_device(void)
 {
     return mock_adc_dev;
+}
+
+/* Mock implementation of battery_adc_to_voltage */
+float battery_adc_to_voltage(int16_t adc_value)
+{
+    /* Simple linear conversion for testing */
+    float adc_voltage = (adc_value * 3.3f) / 4095.0f;
+    return adc_voltage * VOLTAGE_DIVIDER_RATIO;
+}
+
+/* Mock implementation of battery_voltage_to_percentage */
+int battery_voltage_to_percentage(float voltage)
+{
+    /* Linear approximation for testing */
+    int percentage = (int)((voltage - BATTERY_MIN_V) /
+            (BATTERY_MAX_V - BATTERY_MIN_V) * 100.0f);
+    return CLAMP(percentage, 0, 100);
 }
 
 /* Function to reset all mocks */
