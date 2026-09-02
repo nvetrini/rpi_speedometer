@@ -4,7 +4,7 @@
  * Handles all speed and distance calculations based on wheel revolutions.
  */
 
-#include "speed_calculator.h"
+#include <speed_calculator.h>
 #include <math.h>
 
 #ifndef M_PI

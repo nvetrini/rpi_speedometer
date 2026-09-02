@@ -4,7 +4,7 @@
  * Handles all console/printk output for the application.
  */
 
-#include "console_output.h"
+#include <console_output.h>
 #include <zephyr/sys/printk.h>
 #include <errno.h>
 
@@ -53,7 +53,7 @@ void console_print_init(int diameter_cm)
 void console_print_error(const char *msg, int errno_code)
 {
 	if (errno_code != 0) {
-		printk("Error: %s: %s (%d)\n", msg, errno_to_str(errno_code), errno_code);
+		printk("Error: %s: (%d)\n", msg, errno_code);
 	} else {
 		printk("Error: %s\n", msg);
 	}
@@ -62,7 +62,7 @@ void console_print_error(const char *msg, int errno_code)
 void console_print_warning(const char *msg, int errno_code)
 {
 	if (errno_code != 0) {
-		printk("Warning: %s: %s (%d)\n", msg, errno_to_str(errno_code), errno_code);
+		printk("Warning: %s: (%d)\n", msg, errno_code);
 	} else {
 		printk("Warning: %s\n", msg);
 	}

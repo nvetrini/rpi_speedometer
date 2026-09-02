@@ -7,8 +7,8 @@
 #include <zephyr/kernel.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/storage/disk_access.h>
-#include "../../../include/app.h"
-#include "../../../src/storage.h"
+#include <app.h>
+#include <storage.h>
 
 /* Test fixtures */
 static char test_log_message[LOG_BUFFER_SIZE];

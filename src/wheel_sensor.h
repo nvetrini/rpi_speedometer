@@ -7,7 +7,7 @@
 #ifndef WHEEL_SENSOR_H
 #define WHEEL_SENSOR_H
 
-#include "app.h"
+#include <app.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>

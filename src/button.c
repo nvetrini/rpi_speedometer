@@ -6,8 +6,8 @@
  * Button 2: Single press decrements diameter in settings mode
  */
 
-#include "button.h"
-#include "app.h"
+#include <button.h>
+#include <app.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/sys/printk.h>

@@ -4,7 +4,7 @@
  * Handles SD card logging and NVS (Non-Volatile Storage) for settings.
  */
 
-#include "storage.h"
+#include <storage.h>
 #include <zephyr/kernel.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/storage/disk_access.h>

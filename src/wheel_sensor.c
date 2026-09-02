@@ -4,7 +4,7 @@
  * Handles wheel revolution counting via GPIO interrupt with debouncing.
  */
 
-#include "wheel_sensor.h"
+#include <wheel_sensor.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
 

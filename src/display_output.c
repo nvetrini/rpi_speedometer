@@ -4,7 +4,7 @@
  * Handles rendering of application state to the OLED display (SSD1306).
  */
 
-#include "display_output.h"
+#include <display_output.h>
 #include <zephyr/display/cfb.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/device.h>

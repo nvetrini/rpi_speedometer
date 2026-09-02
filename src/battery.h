@@ -7,7 +7,7 @@
 #ifndef BATTERY_H
 #define BATTERY_H
 
-#include "app.h"
+#include <app.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/adc.h>

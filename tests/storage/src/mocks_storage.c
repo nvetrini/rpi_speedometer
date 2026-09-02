@@ -7,7 +7,7 @@
 #include <zephyr/settings/settings.h>
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/fs/fs.h>
-#include "../../../include/app.h"
+#include <app.h>
 
 /* Mock settings handler */
 static struct settings_handler mock_settings_handler;

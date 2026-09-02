@@ -6,8 +6,8 @@
 #include <zephyr/ztest.h>
 #include <zephyr/kernel.h>
 #include <math.h>
-#include "../../../include/app.h"
-#include "../../../src/speed_calculator.h"
+#include <app.h>
+#include <speed_calculator.h>
 
 /* Test fixtures */
 static struct runtime_state test_runtime_state;

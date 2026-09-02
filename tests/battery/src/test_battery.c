@@ -6,8 +6,8 @@
 #include <zephyr/ztest.h>
 #include <zephyr/kernel.h>
 #include <math.h>
-#include "../../../include/app.h"
-#include "../../../src/battery.h"
+#include <app.h>
+#include <battery.h>
 
 /* Test fixtures */
 static struct battery_state test_battery_state;

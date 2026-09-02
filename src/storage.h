@@ -7,7 +7,7 @@
 #ifndef STORAGE_H
 #define STORAGE_H
 
-#include "app.h"
+#include <app.h>
 #include <stdbool.h>
 #include <zephyr/settings/settings.h>
 #include <zephyr/device.h>

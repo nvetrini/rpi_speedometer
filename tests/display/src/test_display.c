@@ -5,8 +5,8 @@
 
 #include <zephyr/ztest.h>
 #include <zephyr/kernel.h>
-#include "../../../include/app.h"
-#include "../../../src/display_output.h"
+#include <app.h>
+#include <display_output.h>
 
 /* Test fixtures */
 static struct button_state test_button_state;

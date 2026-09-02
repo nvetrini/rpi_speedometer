@@ -4,7 +4,7 @@
  * Simply calls the modular application implementation.
  */
 
-#include "app.h"
+#include <app.h>
 
 int main(void)
 {

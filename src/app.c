@@ -4,14 +4,14 @@
  * Coordinates all modules to implement the wheel sensor speedometer.
  */
 
-#include "app.h"
-#include "wheel_sensor.h"
-#include "button.h"
-#include "battery.h"
-#include "speed_calculator.h"
-#include "display_output.h"
-#include "console_output.h"
-#include "storage.h"
+#include <app.h>
+#include <wheel_sensor.h>
+#include <button.h>
+#include <battery.h>
+#include <speed_calculator.h>
+#include <display_output.h>
+#include <console_output.h>
+#include <storage.h>
 
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>

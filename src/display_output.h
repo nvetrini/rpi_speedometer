@@ -7,7 +7,7 @@
 #ifndef DISPLAY_OUTPUT_H
 #define DISPLAY_OUTPUT_H
 
-#include "app.h"
+#include <app.h>
 #include <stdbool.h>
 #include <stdint.h>
 

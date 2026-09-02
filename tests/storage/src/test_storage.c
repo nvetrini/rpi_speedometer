@@ -7,8 +7,8 @@
 #include <zephyr/kernel.h>
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/fs/fs.h>
-#include "../../../include/app.h"
-#include "../../../src/storage.h"
+#include <app.h>
+#include <storage.h>
 
 /* Test fixtures */
 static struct wheel_config test_wheel_config;

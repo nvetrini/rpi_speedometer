@@ -7,7 +7,7 @@
 #include <zephyr/fs/fs.h>
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/device.h>
-#include "../../../include/app.h"
+#include <app.h>
 
 /* Mock SD card device */
 static const struct device *mock_sd_card_dev;

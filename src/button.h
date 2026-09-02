@@ -7,7 +7,7 @@
 #ifndef BUTTON_H
 #define BUTTON_H
 
-#include "app.h"
+#include <app.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>

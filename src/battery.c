@@ -4,7 +4,7 @@
  * Handles ADC-based battery voltage monitoring and percentage calculation.
  */
 
-#include "battery.h"
+#include <battery.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/adc.h>
 #include <zephyr/sys/printk.h>

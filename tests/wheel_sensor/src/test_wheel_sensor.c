@@ -6,8 +6,8 @@
 #include <zephyr/ztest.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/atomic.h>
-#include "../../../include/app.h"
-#include "../../../src/wheel_sensor.h"
+#include <app.h>
+#include <wheel_sensor.h>
 
 /* Test fixtures */
 static struct wheel_sensor_state test_state;
