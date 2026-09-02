@@ -195,7 +195,7 @@ ZTEST(speed_calculator_test, test_speed_calculation_accumulation)
  */
 ZTEST(speed_calculator_test, test_speed_calculation_realistic_values)
 {
-    uint32_t current_count = 100;
+    uint32_t current_count = 2; /* 2 revolutions */
     uint32_t last_count = 0;
     int wheel_diameter_cm = 66; /* Typical 26" wheel diameter in cm */
     uint32_t interval_ms = 1000; /* 1 second */

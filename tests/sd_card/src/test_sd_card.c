@@ -124,7 +124,7 @@ ZTEST(sd_card_test, test_sd_card_log_buffer_size)
     /* Create a very long message to test buffer limits */
     snprintk(test_message, sizeof(test_message),
             "[%lld] revs=%u, speed=%.1f km/h, distance=%u m, diameter=%d cm, extra_data=%s\n",
-            1234567890LL, 999999, 999.9f, 9999999, 999, 
+            1234567890LL, 999999, (double)999.9f, 9999999, 999, 
             "very_long_extra_data_to_test_buffer_limits");
     
     /* Verify message was truncated if necessary but doesn't overflow */

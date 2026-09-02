@@ -70,6 +70,7 @@ ZTEST(wheel_sensor_test, test_wheel_sensor_count_increment)
     for (int i = 0; i < 5; i++) {
         atomic_inc(&test_state.revolution_count);
         test_state.last_trigger_ms = k_uptime_get();
+        k_msleep(1); /* Ensure uptime advances between triggers */
     }
 
     /* Verify count was incremented */
