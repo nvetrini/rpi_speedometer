@@ -6,7 +6,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/device.h>
-#include "../include/app.h"
+#include "../../../include/app.h"
 
 /* Mock device for testing */
 static const struct device *mock_gpio_dev;

@@ -3,11 +3,11 @@
  * @brief Unit tests for battery monitoring functionality
  */
 
-#include <ztest.h>
+#include <zephyr/ztest.h>
 #include <zephyr/kernel.h>
 #include <math.h>
-#include "../include/app.h"
-#include "../src/battery.h"
+#include "../../../include/app.h"
+#include "../../../src/battery.h"
 
 /* Test fixtures */
 static struct battery_state test_battery_state;

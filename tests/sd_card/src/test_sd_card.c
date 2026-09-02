@@ -3,12 +3,12 @@
  * @brief Unit tests for SD card filesystem functionality
  */
 
-#include <ztest.h>
+#include <zephyr/ztest.h>
 #include <zephyr/kernel.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/storage/disk_access.h>
-#include "../include/app.h"
-#include "../src/storage.h"
+#include "../../../include/app.h"
+#include "../../../src/storage.h"
 
 /* Test fixtures */
 static char test_log_message[LOG_BUFFER_SIZE];

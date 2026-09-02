@@ -6,7 +6,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/adc.h>
 #include <zephyr/device.h>
-#include "../include/app.h"
+#include "../../../include/app.h"
 
 /* Mock ADC device */
 static const struct device *mock_adc_dev;

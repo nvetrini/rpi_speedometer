@@ -5,7 +5,6 @@ common:
     - display
     - ui
     - output
-  depends_on: ztest
 
 tests:
   app.display:
@@ -15,4 +14,3 @@ tests:
       - output
     min_ram: 8
     timeout: 30
-    filter: test_display

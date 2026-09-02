@@ -4,7 +4,6 @@ common:
     - application
     - battery
     - adc
-  depends_on: ztest
 
 tests:
   app.battery:
@@ -13,4 +12,3 @@ tests:
       - adc
     min_ram: 8
     timeout: 30
-    filter: test_battery

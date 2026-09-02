@@ -3,12 +3,12 @@
  * @brief Unit tests for storage/NVS functionality
  */
 
-#include <ztest.h>
+#include <zephyr/ztest.h>
 #include <zephyr/kernel.h>
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/fs/fs.h>
-#include "../include/app.h"
-#include "../src/storage.h"
+#include "../../../include/app.h"
+#include "../../../src/storage.h"
 
 /* Test fixtures */
 static struct wheel_config test_wheel_config;

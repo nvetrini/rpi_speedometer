@@ -4,7 +4,6 @@ common:
     - application
     - wheel_sensor
     - sensor
-  depends_on: ztest
 
 tests:
   app.wheel_sensor:
@@ -13,4 +12,3 @@ tests:
       - sensor
     min_ram: 8
     timeout: 30
-    filter: test_wheel_sensor

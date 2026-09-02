@@ -3,10 +3,10 @@
  * @brief Unit tests for display functionality
  */
 
-#include <ztest.h>
+#include <zephyr/ztest.h>
 #include <zephyr/kernel.h>
-#include "../include/app.h"
-#include "../src/display_output.h"
+#include "../../../include/app.h"
+#include "../../../src/display_output.h"
 
 /* Test fixtures */
 static struct button_state test_button_state;
