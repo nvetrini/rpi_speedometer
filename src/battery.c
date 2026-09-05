@@ -2,6 +2,9 @@
  * battery.c - Battery monitoring module
  *
  * Handles ADC-based battery voltage monitoring and percentage calculation.
+ *
+ * @implements REQ-HW-040, REQ-HW-041, REQ-HW-042, REQ-SW-401, REQ-SW-402, REQ-SW-403, REQ-SW-404, REQ-SW-405, REQ-SW-406, REQ-SW-407, REQ-SW-408, REQ-SW-409, REQ-SW-410
+ * @tests tests/battery/src/test_battery.c
  */
 
 #include <battery.h>
@@ -14,6 +17,11 @@
 static const struct adc_dt_spec battery_adc =
 	ADC_DT_SPEC_GET_BY_IDX(USER_NODE, 0);
 
+/**
+ * @brief Initialize battery ADC
+ * @implements REQ-SW-401
+ * @return 0 on success, negative errno on failure
+ */
 int battery_init(void)
 {
 	if (!device_is_ready(battery_adc.dev)) {
@@ -22,6 +30,12 @@ int battery_init(void)
 	return 0;
 }
 
+/**
+ * @brief Read battery voltage and update state
+ * @implements REQ-SW-401, REQ-SW-402, REQ-SW-410
+ * @param battery_state Pointer to battery state structure to update
+ * @return 0 on success, negative errno on failure
+ */
 int battery_read(struct battery_state *battery_state)
 {
 	if (!device_is_ready(battery_adc.dev)) {
@@ -52,6 +66,12 @@ int battery_read(struct battery_state *battery_state)
 	return 0;
 }
 
+/**
+ * @brief Convert ADC value to battery voltage
+ * @implements REQ-SW-403, REQ-SW-404, REQ-SW-405
+ * @param adc_value Raw ADC value (12-bit)
+ * @return Battery voltage in volts
+ */
 float battery_adc_to_voltage(int16_t adc_value)
 {
 	/* Convert ADC value to voltage (12-bit ADC, 3.3V reference)
@@ -65,6 +85,12 @@ float battery_adc_to_voltage(int16_t adc_value)
 	return adc_voltage * VOLTAGE_DIVIDER_RATIO;
 }
 
+/**
+ * @brief Convert battery voltage to percentage
+ * @implements REQ-SW-406, REQ-SW-407, REQ-SW-408, REQ-SW-409
+ * @param voltage Battery voltage in volts
+ * @return Percentage (0-100)
+ */
 int battery_voltage_to_percentage(float voltage)
 {
 	/* Linear approximation for alkaline 2xAA */

@@ -51,7 +51,7 @@ minicom -D /dev/ttyACM0 -b 115200
   you'll most likely want to tune first.
 - This example only handles the sensor input and prints to console.
   To turn it into the full cycling computer, you'd add:
-  - A display driver (e.g. SSD1306 over I2C) to show speed/distance
+  - A display driver (e.g. SH1106 over I2C) to show speed/distance
     instead of/in addition to printk.
   - The Settings subsystem backed by NVS to persist wheel
     circumference and units between reboots.
@@ -90,16 +90,16 @@ Tests are organized in the `tests/` directory with the following modules:
 cd /path/to/rpi_speedometer
 
 # Run all tests on native_sim/native/64 (64-bit)
-west twister -p . -T tests --platform native_sim/native/64
+west twister -T tests --platform native_sim/native/64
 
 # Run specific test by name pattern
-west twister -p . -T tests --platform native_sim/native/64 --test-pattern "test_wheel_sensor.*"
+west twister -T tests --platform native_sim/native/64 --test-pattern "test_wheel_sensor.*"
 
 # Run with verbose output
-west twister -p . -T tests --platform native_sim/native/64 -v
+west twister -T tests --platform native_sim/native/64 -v
 
 # Run with custom configuration
-west twister -p . -T tests --platform native_sim/native/64 -c tests/twister.yml
+west twister -T tests --platform native_sim/native/64 -c tests/twister.yml
 ```
 
 #### Method 2: Using Twister Directly
@@ -109,13 +109,13 @@ west twister -p . -T tests --platform native_sim/native/64 -c tests/twister.yml
 cd /path/to/rpi_speedometer
 
 # Run all tests
-twister -p . -T tests --platform native_sim/native/64
+twister -T tests --platform native_sim/native/64
 
 # Run specific test by name pattern
-twister -p . -T tests --platform native_sim/native/64 --test-pattern "test_wheel_sensor.*"
+twister -T tests --platform native_sim/native/64 --test-pattern "test_wheel_sensor.*"
 
 # Run with custom YAML config
-twister -p . -T tests --platform native_sim/native/64 -c tests/twister.yml
+twister -T tests --platform native_sim/native/64 -c tests/twister.yml
 ```
 
 #### Method 3: Manual Build and Run

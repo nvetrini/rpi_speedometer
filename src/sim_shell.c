@@ -6,12 +6,24 @@
 #include <zephyr/drivers/adc/adc_emul.h>
 #include <stdlib.h>
 
+/*
+ * sim_shell.c - Simulation shell commands for testing
+ *
+ * Provides shell commands to simulate hardware inputs for testing without physical hardware.
+ *
+ * @implements REQ-SW-801, REQ-SW-802, REQ-SW-803, REQ-SW-804, REQ-SW-805, REQ-SW-806
+ */
+
 /* Use the same paths as rpi_pico.overlay */
 static const struct gpio_dt_spec reed   = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), wheel_sensor_gpios);
 static const struct gpio_dt_spec button1 = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), button1_gpios);
 static const struct gpio_dt_spec button2 = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), button2_gpios);
 static const struct adc_dt_spec battery_adc = ADC_DT_SPEC_GET_BY_IDX(DT_PATH(zephyr_user), 0);
 
+/**
+ * @brief Toggle reed switch simulation
+ * @implements REQ-SW-802
+ */
 static int cmd_reed_toggle(const struct shell *sh, size_t argc, char **argv)
 {
     static bool state;
@@ -21,6 +33,10 @@ static int cmd_reed_toggle(const struct shell *sh, size_t argc, char **argv)
     return 0;
 }
 
+/**
+ * @brief Simulate multiple wheel revolutions
+ * @implements REQ-SW-803
+ */
 /* simulate N wheel revolutions at a given interval, e.g. `sim wheel 10 500` */
 static int cmd_wheel(const struct shell *sh, size_t argc, char **argv)
 {
@@ -37,6 +53,10 @@ static int cmd_wheel(const struct shell *sh, size_t argc, char **argv)
     return 0;
 }
 
+/**
+ * @brief Simulate button 1 press
+ * @implements REQ-SW-804
+ */
 static int cmd_button1_press(const struct shell *sh, size_t argc, char **argv)
 {
     gpio_emul_input_set(button1.port, button1.pin, 1);
@@ -46,6 +66,10 @@ static int cmd_button1_press(const struct shell *sh, size_t argc, char **argv)
     return 0;
 }
 
+/**
+ * @brief Simulate button 2 press
+ * @implements REQ-SW-804
+ */
 static int cmd_button2_press(const struct shell *sh, size_t argc, char **argv)
 {
     gpio_emul_input_set(button2.port, button2.pin, 1);
@@ -55,6 +79,10 @@ static int cmd_button2_press(const struct shell *sh, size_t argc, char **argv)
     return 0;
 }
 
+/**
+ * @brief Set battery voltage for simulation
+ * @implements REQ-SW-805
+ */
 static int cmd_battery_set(const struct shell *sh, size_t argc, char **argv)
 {
     if (argc < 2) {
@@ -68,6 +96,10 @@ static int cmd_battery_set(const struct shell *sh, size_t argc, char **argv)
     return 0;
 }
 
+/**
+ * @brief Register simulation commands
+ * @implements REQ-SW-801, REQ-SW-806
+ */
 SHELL_STATIC_SUBCMD_SET_CREATE(sim_cmds,
     SHELL_CMD(reed, NULL, "Toggle reed switch once", cmd_reed_toggle),
     SHELL_CMD(wheel, NULL, "Simulate wheel revs [count] [ms]", cmd_wheel),

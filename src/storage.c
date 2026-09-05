@@ -2,6 +2,9 @@
  * storage.c - Storage module
  *
  * Handles SD card logging and NVS (Non-Volatile Storage) for settings.
+ *
+ * @implements REQ-HW-050, REQ-HW-051, REQ-HW-052, REQ-HW-053, REQ-SW-601, REQ-SW-602, REQ-SW-603, REQ-SW-604, REQ-SW-605, REQ-SW-606, REQ-SW-607, REQ-SW-608, REQ-SW-609
+ * @tests tests/storage/src/test_storage.c, tests/sd_card/src/test_sd_card.c
  */
 
 #include <storage.h>
@@ -61,6 +64,12 @@ static int settings_wheel_diameter_handler(const char *key, size_t len,
 	return -ENOENT;
 }
 
+/**
+ * @brief Initialize storage and NVS subsystem
+ * @implements REQ-SW-601, REQ-SW-602, REQ-SW-603
+ * @param wheel_config Pointer to wheel configuration
+ * @return 0 on success, negative errno on failure
+ */
 int storage_init(struct wheel_config *wheel_config)
 {
 	wheel_config_ptr = wheel_config;
@@ -79,6 +88,11 @@ int storage_init(struct wheel_config *wheel_config)
 	return 0;
 }
 
+/**
+ * @brief Initialize SD card device and filesystem
+ * @implements REQ-HW-050, REQ-HW-051, REQ-SW-604
+ * @return 0 on success, negative errno on failure
+ */
 int storage_sd_init(void)
 {
 	/* Get the SDHC SPI device from devicetree */
@@ -99,6 +113,11 @@ int storage_sd_init(void)
 	return 0;
 }
 
+/**
+ * @brief Open log file for appending
+ * @implements REQ-SW-605, REQ-SW-606, REQ-SW-607
+ * @return 0 on success, negative errno on failure
+ */
 int storage_log_open(void)
 {
 	int ret;
@@ -148,6 +167,11 @@ int storage_log_open(void)
 	return 0;
 }
 
+/**
+ * @brief Write message to log file
+ * @implements REQ-SW-607
+ * @param msg Message to write to log
+ */
 void storage_log_write(const char *msg)
 {
 	if (!log_initialized || log_file.mp == NULL) {
@@ -167,6 +191,11 @@ void storage_log_write(const char *msg)
 	}
 }
 
+/**
+ * @brief Save wheel diameter to NVS
+ * @implements REQ-SW-601, REQ-SW-609
+ * @param wheel_config Pointer to wheel configuration
+ */
 void storage_save_wheel_diameter(const struct wheel_config *wheel_config)
 {
 	int rc = settings_save_one("wheel_diameter/wheel_diameter",
@@ -176,6 +205,11 @@ void storage_save_wheel_diameter(const struct wheel_config *wheel_config)
 	}
 }
 
+/**
+ * @brief Check if logging is available
+ * @implements REQ-SW-608
+ * @return true if logging is available, false otherwise
+ */
 bool storage_log_available(void)
 {
 	return log_initialized && (log_file.mp != NULL);

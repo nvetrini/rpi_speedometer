@@ -140,7 +140,7 @@ float speed_calculator_speed_kmh(float distance_m, float time_s);
 ### 6. `display_output` Module
 **Files:** `src/display_output.c`, `src/display_output.h`
 
-**Responsibility:** Rendering application state to SSD1306 OLED display.
+**Responsibility:** Rendering application state to SH1106 OLED display.
 
 **Interface:**
 ```c

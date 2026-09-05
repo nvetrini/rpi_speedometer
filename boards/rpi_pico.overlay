@@ -20,13 +20,13 @@
 	};
 };
 
-/* Enable I2C for SSD1306 display */
+/* Enable I2C for SH1106 display */
 &i2c0 {
 	status = "okay";
 	clock-frequency = <400000>;
 
-	display: ssd1306@3c {
-		compatible = "solomon,ssd1306";
+	display: sh1106@3c {
+		compatible = "sinowealth,sh1106";
 		reg = <0x3c>;
 		width = <128>;
 		height = <64>;

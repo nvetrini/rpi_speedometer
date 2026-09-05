@@ -30,7 +30,7 @@ This repository implements a **bike computer/speedometer** application using the
 - **Wheel Sensor:** GPIO interrupt-driven reed switch or Hall-effect sensor input
 - **Buttons:** Two GPIO buttons for settings navigation (diameter adjustment)
 - **Battery Monitoring:** ADC-based voltage reading with percentage calculation
-- **Display:** SSD1306 OLED display support (I2C) - shows speed, distance, wheel size, battery
+- **Display:** SH1106 OLED display support (I2C) - shows speed, distance, wheel size, battery
 - **Console:** Serial output for debugging and data display
 - **SD Card:** SPI-based SD card for logging trip data to `logs/app.log`
 
@@ -138,7 +138,7 @@ Enabled by default:
 - `CONFIG_GPIO` - GPIO driver
 - `CONFIG_ADC` - ADC driver
 - `CONFIG_PRINTK`, `CONFIG_CONSOLE`, `CONFIG_SERIAL` - Console output
-- `CONFIG_DISPLAY`, `CONFIG_I2C`, `CONFIG_SPI`, `CONFIG_SSD1306` - Display support
+- `CONFIG_DISPLAY`, `CONFIG_I2C`, `CONFIG_SPI`, `CONFIG_SSD1306` - Display support (includes SH1106)
 - `CONFIG_SETTINGS`, `CONFIG_NVS`, `CONFIG_FLASH` - Persistent settings
 - `CONFIG_SDHC`, `CONFIG_SDMMC_STACK`, `CONFIG_FAT_FILESYSTEM_ELM` - SD card support
 - `CONFIG_LOG` - Logging subsystem

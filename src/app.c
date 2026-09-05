@@ -2,6 +2,8 @@
  * app.c - Main application with modular architecture
  *
  * Coordinates all modules to implement the wheel sensor speedometer.
+ *
+ * @implements REQ-SW-001, REQ-SW-002, REQ-SW-003, REQ-SW-004, REQ-SW-005, REQ-SW-006, REQ-SW-007, REQ-SW-008
  */
 
 #include <app.h>
@@ -53,6 +55,11 @@ static void app_state_work_handler(struct k_work *work);
 
 K_WORK_DEFINE(app_state_work, app_state_work_handler);
 
+/**
+ * @brief Work handler for deferred state updates
+ * @implements REQ-SW-003, REQ-SW-601
+ * @param work Work item (unused)
+ */
 static void app_state_work_handler(struct k_work *work)
 {
 	ARG_UNUSED(work);
@@ -67,11 +74,20 @@ static void app_state_work_handler(struct k_work *work)
 	}
 }
 
+/**
+ * @brief Queue deferred state update
+ * @implements REQ-SW-601
+ */
 static void queue_app_state_update(void)
 {
 	k_work_submit(&app_state_work);
 }
 
+/**
+ * @brief Main application entry point
+ * @implements REQ-SW-001, REQ-SW-002, REQ-SW-003, REQ-SW-004, REQ-SW-005, REQ-SW-006, REQ-SW-007, REQ-SW-008
+ * @return Application exit code
+ */
 int app_run(void)
 {
 	int ret;

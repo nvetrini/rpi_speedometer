@@ -2,6 +2,9 @@
  * wheel_sensor.c - Wheel sensor module
  *
  * Handles wheel revolution counting via GPIO interrupt with debouncing.
+ *
+ * @implements REQ-HW-010, REQ-HW-012, REQ-HW-013, REQ-SW-101, REQ-SW-102, REQ-SW-103, REQ-SW-104, REQ-SW-105, REQ-SW-106, REQ-SW-107
+ * @tests tests/wheel_sensor/src/test_wheel_sensor.c
  */
 
 #include <wheel_sensor.h>
@@ -16,6 +19,12 @@ static const struct gpio_dt_spec wheel_sensor =
 static struct wheel_sensor_state *sensor_state_ptr = NULL;
 static struct gpio_callback wheel_sensor_cb_data;
 
+/**
+ * @brief Initialize wheel sensor GPIO and interrupt
+ * @implements REQ-SW-101, REQ-SW-102
+ * @param sensor_state Pointer to wheel sensor state structure
+ * @return 0 on success, negative errno on failure
+ */
 int wheel_sensor_init(struct wheel_sensor_state *sensor_state)
 {
 	int ret;
@@ -47,11 +56,24 @@ int wheel_sensor_init(struct wheel_sensor_state *sensor_state)
 	return 0;
 }
 
+/**
+ * @brief Get current revolution count (atomic read)
+ * @implements REQ-SW-105, REQ-SW-106
+ * @param sensor_state Pointer to wheel sensor state structure
+ * @return Current revolution count
+ */
 uint32_t wheel_sensor_get_count(const struct wheel_sensor_state *sensor_state)
 {
 	return atomic_get(&sensor_state->revolution_count);
 }
 
+/**
+ * @brief ISR callback for wheel sensor trigger
+ * @implements REQ-SW-101, REQ-SW-103, REQ-SW-104, REQ-SW-105, REQ-SW-107
+ * @param dev Device pointer (unused)
+ * @param cb Callback pointer (unused)
+ * @param pins Triggered pins (unused)
+ */
 void wheel_sensor_triggered(const struct device *dev,
 		struct gpio_callback *cb, uint32_t pins)
 {

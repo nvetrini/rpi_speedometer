@@ -4,6 +4,8 @@
  * Handles button input with debouncing and settings mode management.
  * Button 1: Double-press toggles settings mode, single press increments diameter
  * Button 2: Single press decrements diameter in settings mode
+ *
+ * @implements REQ-HW-020, REQ-HW-021, REQ-HW-022, REQ-HW-023, REQ-SW-301, REQ-SW-302, REQ-SW-303, REQ-SW-304, REQ-SW-305, REQ-SW-306, REQ-SW-307, REQ-SW-308, REQ-SW-309, REQ-SW-310, REQ-SW-311
  */
 
 #include <button.h>
@@ -40,6 +42,11 @@ struct button_cb_data {
 static struct button_cb_data button_cb_data[2];
 
 /* Internal processing function */
+/**
+ * @brief Internal processing function for button presses
+ * @implements REQ-SW-301, REQ-SW-302, REQ-SW-303, REQ-SW-304, REQ-SW-305, REQ-SW-306, REQ-SW-307, REQ-SW-308, REQ-SW-309, REQ-SW-310, REQ-SW-311
+ * @param button_idx Button index (0 for button1, 1 for button2)
+ */
 static void process_button_press(int button_idx)
 {
 	/* Use __ASSERT_NO_MSG for NULL checks in ISR context */
@@ -83,6 +90,13 @@ static void process_button_press(int button_idx)
 	}
 }
 
+/**
+ * @brief Unified callback for all buttons
+ * @implements REQ-SW-301, REQ-SW-302
+ * @param dev Device pointer (unused)
+ * @param cb Callback pointer
+ * @param pins Triggered pins (unused)
+ */
 /* Unified callback for all buttons */
 static void button_pressed(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
@@ -92,6 +106,12 @@ static void button_pressed(const struct device *dev, struct gpio_callback *cb, u
 	process_button_press(data->button_idx);
 }
 
+/**
+ * @brief Initialize button GPIOs and interrupts
+ * @implements REQ-SW-301, REQ-SW-302
+ * @param button_state Pointer to button state structure
+ * @return 0 on success, negative errno on failure
+ */
 int button_init(struct button_state *button_state)
 {
 	int ret;
@@ -143,6 +163,11 @@ int button_init(struct button_state *button_state)
 	return 0;
 }
 
+/**
+ * @brief Set wheel config pointer for button callbacks
+ * @implements REQ-SW-303
+ * @param wheel_config Pointer to wheel configuration
+ */
 void button_set_wheel_config(struct wheel_config *wheel_config)
 {
 	wheel_config_ptr = wheel_config;

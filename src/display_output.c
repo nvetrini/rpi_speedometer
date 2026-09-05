@@ -1,7 +1,10 @@
 /*
  * display_output.c - Display output module
  *
- * Handles rendering of application state to the OLED display (SSD1306).
+ * Handles rendering of application state to the OLED display (SH1106).
+ *
+ * @implements REQ-HW-030, REQ-HW-031, REQ-SW-501, REQ-SW-502, REQ-SW-503, REQ-SW-504, REQ-SW-505, REQ-SW-506, REQ-SW-507, REQ-SW-508, REQ-SW-509
+ * @tests tests/display/src/test_display.c
  */
 
 #include <display_output.h>
@@ -17,6 +20,11 @@ static const struct device *display_dev;
 static uint8_t display_font_height;
 static bool display_initialized = false;
 
+/**
+ * @brief Initialize display
+ * @implements REQ-SW-508, REQ-SW-509
+ * @return 0 on success, negative errno on failure
+ */
 int display_init(void)
 {
 	int ret;
@@ -96,6 +104,14 @@ static void display_print_lines(const char *line1, const char *line2,
 	cfb_framebuffer_finalize(display_dev);
 }
 
+/**
+ * @brief Render application state to display
+ * @implements REQ-SW-501, REQ-SW-502, REQ-SW-503, REQ-SW-504, REQ-SW-505, REQ-SW-506, REQ-SW-507
+ * @param button_state Pointer to button state
+ * @param wheel_config Pointer to wheel configuration
+ * @param runtime_state Pointer to runtime state
+ * @param battery_state Pointer to battery state
+ */
 void display_render(const struct button_state *button_state,
 		const struct wheel_config *wheel_config,
 		const struct runtime_state *runtime_state,
@@ -138,6 +154,11 @@ void display_render(const struct button_state *button_state,
 	display_print_lines(line1, line2, line3, line4);
 }
 
+/**
+ * @brief Check if display is available
+ * @implements REQ-SW-509
+ * @return true if display is available, false otherwise
+ */
 bool display_is_available(void)
 {
 	return display_initialized && (display_dev != NULL);
