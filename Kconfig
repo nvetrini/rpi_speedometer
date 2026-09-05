@@ -1,12 +1,16 @@
 menu "Application Configuration"
 
 config DISPLAY_ENABLED
-	bool "Enable SH1106 OLED display support"
-	default n
+	bool "Enable OLED display support (SH1106)"
+	default y
+	imply I2C
+	imply DISPLAY
+	imply SSD1306
+	imply CHARACTER_FRAMEBUFFER
 	help
 		Enable support for SH1106 OLED display over I2C.
-		When enabled, button presses will be displayed on the OLED.
-		When disabled, button presses will be printed to console only.
+		When enabled, the display driver and related functionality are included.
+		When disabled, all display-related code is excluded.
 
 config APP_SIMULATION
     bool "Enable shell commands to drive simulated peripherals"
