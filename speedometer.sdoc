@@ -1,0 +1,155 @@
+[DOCUMENT]
+TITLE: Wheel Sensor Speedometer Specification
+UID: zephyr-rpi-speedometer
+VERSION: 1.0
+DATE: 2026-09-04
+CLASSIFICATION: Public
+PREFIX: REQ
+ROOT: True
+
+[[SECTION]]
+TITLE: Hardware Requirements
+
+[REQUIREMENT]
+UID: REQ-HW-001
+TITLE: Target Platform Support
+STATEMENT: >>>
+The application SHALL target the Raspberry Pi Pico (RP2040) microcontroller
+as the primary hardware platform.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-002
+TITLE: Simulation Platform Support
+STATEMENT: >>>
+The application SHALL support Native POSIX simulation (native_sim//64)
+for development and testing purposes.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-010
+TITLE: Reed Switch Support
+STATEMENT: >>>
+The system SHALL support reed switch sensors for wheel revolution detection.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-012
+TITLE: Wheel Sensor GPIO Connection
+STATEMENT: >>>
+The wheel sensor SHALL be connected to GPIO pin 16 (GPIO0 pin 8)
+on the Raspberry Pi Pico.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-013
+TITLE: Wheel Sensor Configuration
+STATEMENT: >>>
+The wheel sensor input SHALL use ACTIVE_LOW configuration with
+internal PULL_UP resistor.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-020
+TITLE: Button Count
+STATEMENT: >>>
+The system SHALL provide two user buttons for configuration and navigation.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-021
+TITLE: Button 1 Connection
+STATEMENT: >>>
+Button 1 SHALL be connected to GPIO pin 17 (GPIO0 pin 9) on the Raspberry Pi Pico.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-022
+TITLE: Button 2 Connection
+STATEMENT: >>>
+Button 2 SHALL be connected to GPIO pin 18 (GPIO0 pin 10) on the Raspberry Pi Pico.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-023
+TITLE: Button Configuration
+STATEMENT: >>>
+Both buttons SHALL use ACTIVE_LOW configuration with internal PULL_UP resistors.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-030
+TITLE: Display Support
+STATEMENT: >>>
+The system SHALL support SH1106 OLED display for user interface.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-031
+TITLE: Display Interface
+STATEMENT: >>>
+The display SHALL be connected via I2C interface.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-040
+TITLE: Battery ADC Channel
+STATEMENT: >>>
+The system SHALL monitor battery voltage via ADC channel 0 (GPIO 26).
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-041
+TITLE: ADC Resolution
+STATEMENT: >>>
+The ADC SHALL use 12-bit resolution for battery voltage measurement.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-042
+TITLE: Voltage Divider Circuit
+STATEMENT: >>>
+The system SHALL use a voltage divider circuit for battery monitoring.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-050
+TITLE: SD Card Interface
+STATEMENT: >>>
+The system SHALL support SD card storage via SPI1 interface.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-051
+TITLE: SD Card Chip Select
+STATEMENT: >>>
+The SD card chip select (CS) SHALL be connected to GPIO 17.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-052
+TITLE: NVS Storage
+STATEMENT: >>>
+The system SHALL use Non-Volatile Storage (NVS) for persistent configuration.
+<<<
+
+[REQUIREMENT]
+UID: REQ-HW-053
+TITLE: Storage Partition
+STATEMENT: >>>
+The system SHALL reserve a 16KB storage partition at offset 0x20000 for NVS.
+<<<
+
+[[/SECTION]]
+
+[[SECTION]]
+TITLE: Software Requirements
+
+[REQUIREMENT]
+UID: REQ-SW-001
+TITLE: Operating System
+STATEMENT: >>>
+The system SHALL run on the Zephyr RTOS, version 4.4.0.
+<<<
+
+[[/SECTION]]
