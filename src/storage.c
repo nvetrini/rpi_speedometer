@@ -9,11 +9,13 @@
 
 #include <storage.h>
 #include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
+#include <errno.h>
+
+#ifdef CONFIG_SD_CARD_ENABLED
 #include <zephyr/fs/fs.h>
 #include <zephyr/storage/disk_access.h>
 #include <zephyr/fs/fs_interface.h>
-#include <zephyr/sys/printk.h>
-#include <errno.h>
 
 /* SD card device reference */
 const struct device *sd_card_dev;
@@ -23,11 +25,14 @@ const char *mount_point = "/SD:";
 struct fs_mount_t sd_fs_mount = {
 	.mnt_point = "/SD:",
 };
+#endif
 
+#ifdef CONFIG_SD_CARD_ENABLED
 /* Logging */
 static struct fs_file_t log_file;
 static char log_file_path[32];
 static bool log_initialized = false;
+#endif
 
 /* Settings handler */
 static struct settings_handler wheel_diameter_handler;
@@ -88,6 +93,7 @@ int storage_init(struct wheel_config *wheel_config)
 	return 0;
 }
 
+#ifdef CONFIG_SD_CARD_ENABLED
 /**
  * @brief Initialize SD card device and filesystem
  * @implements REQ-HW-050, REQ-HW-051, REQ-SW-604
@@ -112,7 +118,9 @@ int storage_sd_init(void)
 	printk("SD card device found, mounted, and ready\n");
 	return 0;
 }
+#endif
 
+#ifdef CONFIG_SD_CARD_ENABLED
 /**
  * @brief Open log file for appending
  * @implements REQ-SW-605, REQ-SW-606, REQ-SW-607
@@ -166,7 +174,9 @@ int storage_log_open(void)
 	log_initialized = true;
 	return 0;
 }
+#endif
 
+#ifdef CONFIG_SD_CARD_ENABLED
 /**
  * @brief Write message to log file
  * @implements REQ-SW-607
@@ -190,6 +200,7 @@ void storage_log_write(const char *msg)
 		fs_sync(&log_file);
 	}
 }
+#endif
 
 /**
  * @brief Save wheel diameter to NVS
@@ -205,6 +216,7 @@ void storage_save_wheel_diameter(const struct wheel_config *wheel_config)
 	}
 }
 
+#ifdef CONFIG_SD_CARD_ENABLED
 /**
  * @brief Check if logging is available
  * @implements REQ-SW-608
@@ -214,3 +226,4 @@ bool storage_log_available(void)
 {
 	return log_initialized && (log_file.mp != NULL);
 }
+#endif

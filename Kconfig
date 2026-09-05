@@ -12,6 +12,20 @@ config DISPLAY_ENABLED
 		When enabled, the display driver and related functionality are included.
 		When disabled, all display-related code is excluded.
 
+config SD_CARD_ENABLED
+	bool "Enable SD card storage via SPI"
+	default y
+	imply SPI
+	imply SDHC
+	imply SDMMC_STACK
+	imply DISK_ACCESS
+	imply FILE_SYSTEM
+	imply FAT_FILESYSTEM_ELM
+	help
+		Enable support for SD card storage over SPI.
+		When enabled, the SD card driver and filesystem support are included.
+		When disabled, all SD card-related code and dependencies are excluded.
+
 config APP_SIMULATION
     bool "Enable shell commands to drive simulated peripherals"
     depends on GPIO_EMUL || ADC_EMUL

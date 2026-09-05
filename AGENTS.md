@@ -57,21 +57,32 @@ This repository implements a **bike computer/speedometer** application using the
 ## Build & Run
 
 ### Prerequisites
-- Zephyr RTOS workspace with `zephyr` and `hal_stm32` (or relevant modules)
-- `west` build tool installed
-- Python virtual environment (optional, referenced by `build.sh`)
+- **Zephyr RTOS**: A clone of the Zephyr main repository is available in the parent directory (`../zephyr`)
+- **Python Virtual Environment**: A virtual environment with `west` is available in the parent directory (`../.venv`). Source it to enable the `west` command:
+  ```bash
+  source ../.venv/bin/activate
+  ```
+- **Build Tool**: `west` build tool (available via the virtual environment)
+- **SDK**: Zephyr SDK (referenced by the toolchain configuration)
 
 ### Building
 
+After sourcing the virtual environment, run builds from this repository directory:
+
 ```bash
+# Source the virtual environment to enable west
+source ../.venv/bin/activate
+
 # For Raspberry Pi Pico
-west build -b rpi_pico /path/to/rpi_speedometer
+west build -b rpi_pico .
 
 # For native simulation (64-bit)
-west build -b native_sim//64 /path/to/rpi_speedometer
+west build -b native_sim//64 .
 
 # Using the build script
 ./build.sh rpi_pico
+./build.sh native_sim//64
+```
 ./build.sh native_sim//64
 ```
 
@@ -178,9 +189,10 @@ struct runtime_state {
 
 ### Development Workflow Notes
 
-1. **Testing Changes:** Use `native_sim/native/64` board for rapid iteration
-2. **Simulating Input:** Use `sim` shell commands to test without hardware
-3. **Devicetree Changes:** Modify overlays, not application code, for pin changes
+1. **Environment Setup:** Source the parent directory's virtual environment before building: `source ../.venv/bin/activate`
+2. **Testing Changes:** Use `native_sim/native/64` board for rapid iteration
+3. **Simulating Input:** Use `sim` shell commands to test without hardware
+4. **Devicetree Changes:** Modify overlays, not application code, for pin changes
 4. **Adding Features:**
    - New hardware: Add to devicetree overlay first
    - New settings: Register settings handler, add to storage partition
