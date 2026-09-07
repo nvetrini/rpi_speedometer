@@ -5,6 +5,8 @@ common:
     - sd_card
     - filesystem
     - fs
+  platform_allow:
+    - native_sim
 
 tests:
   app.sd_card:
@@ -14,3 +16,4 @@ tests:
       - fs
     min_ram: 8
     timeout: 30
+    extra_args: EXTRA_DTC_OVERLAY_FILE=boards/native_sim.overlay

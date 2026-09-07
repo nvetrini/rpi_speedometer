@@ -1,237 +1,360 @@
 /**
  * @file test_sd_card.c
- * @brief Unit tests for SD card filesystem functionality
+ * @brief Integration tests for filesystem operations on SD card / ramdisk
+ *
+ * These tests exercise the actual filesystem API using a ramdisk on native_sim.
+ * Pattern based on zephyr/tests/subsys/fs/fat_fs_api/ tests.
  */
 
 #include <zephyr/ztest.h>
 #include <zephyr/kernel.h>
 #include <zephyr/fs/fs.h>
 #include <zephyr/storage/disk_access.h>
-#include <app.h>
-#include <storage.h>
+#include <zephyr/device.h>
+#include <ff.h>
 
-/* Test fixtures */
-static char test_log_message[LOG_BUFFER_SIZE];
+/* Test configuration */
+#define TEST_MOUNT_POINT "/RAM:"
+#define TEST_FILE_PATH   TEST_MOUNT_POINT "/logs/app.log"
+#define TEST_DIR_PATH    TEST_MOUNT_POINT "/logs"
+#define TEST_DATA        "Test log message\n"
+#define TEST_DATA_LEN    (sizeof(TEST_DATA) - 1)
+
+/* FatFS work area */
+static FATFS fat_fs;
+
+/* File object */
+static struct fs_file_t file;
+
+/* Mount structure */
+static struct fs_mount_t mount = {
+	.type = FS_FATFS,
+	.mnt_point = TEST_MOUNT_POINT,
+	.fs_data = &fat_fs,
+};
 
 /**
- * @brief Test setup function - runs before each test
+ * @brief Test setup - performed before each test
  */
 static void *sd_card_test_setup(void)
 {
-    /* Clear test log message */
-    memset(test_log_message, 0, sizeof(test_log_message));
-    return NULL;
+	/* Initialize file object */
+	fs_file_t_init(&file);
+	
+	/* Unmount if already mounted (clean state) */
+	if (mount.fs) {
+		fs_unmount(&mount);
+	}
+	
+	/* Initialize disk access for RAM disk */
+	int rc = disk_access_init("RAM");
+	zassert_equal(rc, 0, "Failed to initialize RAM disk (%d)", rc);
+	
+	/* Mount the filesystem */
+	/* With CONFIG_FS_FATFS_MOUNT_MKFS=y, it will auto-format if needed */
+	rc = fs_mount(&mount);
+	zassert_true(rc == 0, "Failed to mount filesystem (%d)", rc);
+	
+	return NULL;
 }
 
 /**
- * @brief Test teardown function - runs after each test
+ * @brief Test teardown - performed after each test
  */
 static void sd_card_test_teardown(void *fixture)
 {
-    ARG_UNUSED(fixture);
+	ARG_UNUSED(fixture);
+	
+	/* Close file if open */
+	if (file.mp) {
+		fs_close(&file);
+	}
+	
+	/* Unmount filesystem */
+	if (mount.fs) {
+		fs_unmount(&mount);
+	}
 }
 
 /**
- * @brief Test SD card filesystem mount success
+ * @brief Test filesystem mount
  */
-ZTEST(sd_card_test, test_sd_card_mount_success)
+ZTEST(sd_card_test, test_fs_mount)
 {
-    /* Test filesystem mount parameters */
-    struct fs_mount_t mount;
-    const char *mount_point = "/SD:";
-    
-    /* Initialize mount structure */
-    mount.mnt_point = mount_point;
-    
-    /* Verify mount point is set correctly */
-    zassert_equal(strcmp(mount.mnt_point, mount_point), 0,
-                 "Mount point should be /SD:");
+	/* Filesystem should already be mounted by setup */
+	zassert_str_equal(mount.mnt_point, TEST_MOUNT_POINT, "Mount point mismatch");
+	zassert_not_null(mount.fs, "Filesystem should have fs pointer after mount");
 }
 
 /**
- * @brief Test SD card filesystem mount failure
+ * @brief Test filesystem directory creation
  */
-ZTEST(sd_card_test, test_sd_card_mount_failure)
+ZTEST(sd_card_test, test_fs_mkdir)
 {
-    /* Test error codes that might be returned by fs_mount */
-    int error_codes[] = {
-        -ENODEV,    /* No such device */
-        -ENOENT,    /* No such file or directory */
-        -EIO,       /* I/O error */
-        -ENOTSUP,   /* Operation not supported */
-        -EBUSY,     /* Device or resource busy */
-    };
-    
-    /* Verify all error codes are negative (as expected) */
-    for (int i = 0; i < ARRAY_SIZE(error_codes); i++) {
-        zassert_true(error_codes[i] < 0,
-                    "Mount error code %d should be negative", error_codes[i]);
-    }
+	int rc;
+	struct fs_dirent dirent;
+
+	/* Create logs directory */
+	rc = fs_mkdir(TEST_DIR_PATH);
+	/* Accept success or EEXIST if directory already exists from previous test */
+	zassert_true(rc == 0 || rc == -EEXIST, 
+		"Directory creation should succeed or already exist, got %d", rc);
+	
+	/* Verify directory exists */
+	rc = fs_stat(TEST_DIR_PATH, &dirent);
+	zassert_equal(rc, 0, "Directory stat failed (%d)", rc);
+	zassert_true(dirent.type == FS_DIR_ENTRY_DIR, "Path should be a directory");
 }
 
 /**
- * @brief Test SD card log file creation
+ * @brief Test file creation and writing
  */
-ZTEST(sd_card_test, test_sd_card_log_file_creation)
+ZTEST(sd_card_test, test_fs_file_create_write)
 {
-    const char *expected_path = "/SD:/logs/app.log";
-    
-    /* Test path construction */
-    char log_path[32];
-    snprintk(log_path, sizeof(log_path), "%s%s", "/SD:", "logs/app.log");
-    
-    /* Verify path is constructed correctly */
-    zassert_equal(strcmp(log_path, expected_path), 0,
-                 "Log file path should be %s", expected_path);
+	int rc;
+	ssize_t bytes_written;
+
+	/* Create directory first */
+	rc = fs_mkdir(TEST_DIR_PATH);
+	/* Ignore error if directory already exists */
+	
+	/* Create and open file for writing */
+	rc = fs_open(&file, TEST_FILE_PATH, FS_O_CREATE | FS_O_RDWR);
+	zassert_equal(rc, 0, "Failed to open/create file (%d)", rc);
+	
+	/* Write test data */
+	bytes_written = fs_write(&file, TEST_DATA, TEST_DATA_LEN);
+	zassert_equal(bytes_written, TEST_DATA_LEN, 
+		"Write failed: expected %d bytes, got %zd", 
+		TEST_DATA_LEN, bytes_written);
+	
+	/* Sync to ensure data is written */
+	rc = fs_sync(&file);
+	zassert_equal(rc, 0, "fs_sync failed (%d)", rc);
+	
+	/* Close file */
+	rc = fs_close(&file);
+	zassert_equal(rc, 0, "fs_close failed (%d)", rc);
 }
 
 /**
- * @brief Test SD card log message formatting
+ * @brief Test file reading
  */
-ZTEST(sd_card_test, test_sd_card_log_message_formatting)
+ZTEST(sd_card_test, test_fs_file_read)
 {
-    uint32_t current_count = 100;
-    float speed_kmh = 25.5f;
-    uint32_t total_distance_m = 5000;
-    int wheel_diameter_cm = 66;
-    int64_t uptime_ms = 12345678;
-    
-    /* Format a log message */
-    snprintk(test_log_message, sizeof(test_log_message),
-            "[%lld] revs=%u, speed=%.1f km/h, distance=%u m, diameter=%d cm\n",
-            uptime_ms, current_count, (double)speed_kmh,
-            total_distance_m, wheel_diameter_cm);
-    
-    /* Verify message contains expected components */
-    zassert_true(strstr(test_log_message, "revs=100") != NULL,
-                "Log message should contain revs=100");
-    zassert_true(strstr(test_log_message, "speed=25.5") != NULL,
-                "Log message should contain speed=25.5");
-    zassert_true(strstr(test_log_message, "distance=5000") != NULL,
-                "Log message should contain distance=5000");
-    zassert_true(strstr(test_log_message, "diameter=66") != NULL,
-                "Log message should contain diameter=66");
+	int rc;
+	ssize_t bytes_read;
+	char read_buffer[TEST_DATA_LEN + 1];
+
+	/* Create directory and file with test data first */
+	rc = fs_mkdir(TEST_DIR_PATH);
+	
+	/* Create and write file */
+	rc = fs_open(&file, TEST_FILE_PATH, FS_O_CREATE | FS_O_RDWR);
+	zassert_equal(rc, 0, "Failed to create file (%d)", rc);
+	
+	rc = fs_write(&file, TEST_DATA, TEST_DATA_LEN);
+	zassert_equal(rc, TEST_DATA_LEN, "Failed to write initial data (%d)", rc);
+	
+	rc = fs_close(&file);
+	zassert_equal(rc, 0, "Failed to close file after write (%d)", rc);
+	
+	/* Open file for reading */
+	rc = fs_open(&file, TEST_FILE_PATH, FS_O_READ);
+	zassert_equal(rc, 0, "Failed to open file for reading (%d)", rc);
+	
+	/* Read data back */
+	bytes_read = fs_read(&file, read_buffer, TEST_DATA_LEN);
+	zassert_equal(bytes_read, TEST_DATA_LEN, 
+		"Read failed: expected %d bytes, got %zd", 
+		TEST_DATA_LEN, bytes_read);
+	
+	/* Null-terminate and verify content */
+	read_buffer[TEST_DATA_LEN] = '\0';
+	zassert_equal(strncmp(read_buffer, TEST_DATA, TEST_DATA_LEN), 0,
+		"Read data does not match written data");
+	
+	/* Close file */
+	rc = fs_close(&file);
+	zassert_equal(rc, 0, "fs_close failed (%d)", rc);
 }
 
 /**
- * @brief Test SD card log buffer size limits
+ * @brief Test file append
  */
-ZTEST(sd_card_test, test_sd_card_log_buffer_size)
+ZTEST(sd_card_test, test_fs_file_append)
 {
-    /* Test that LOG_BUFFER_SIZE is large enough for typical messages */
-    char test_message[LOG_BUFFER_SIZE];
-    
-    /* Create a very long message to test buffer limits */
-    snprintk(test_message, sizeof(test_message),
-            "[%lld] revs=%u, speed=%.1f km/h, distance=%u m, diameter=%d cm, extra_data=%s\n",
-            1234567890LL, 999999, (double)999.9f, 9999999, 999, 
-            "very_long_extra_data_to_test_buffer_limits");
-    
-    /* Verify message was truncated if necessary but doesn't overflow */
-    zassert_true(strlen(test_message) < LOG_BUFFER_SIZE,
-                "Log message should fit within buffer size");
+	int rc;
+	ssize_t bytes_written;
+	char read_buffer[TEST_DATA_LEN * 2 + 1];
+	ssize_t bytes_read;
+	const char *append_data = "Appended data\n";
+	const size_t append_len = strlen(append_data);
+
+	/* Create directory and initial file with test data */
+	rc = fs_mkdir(TEST_DIR_PATH);
+	
+	rc = fs_open(&file, TEST_FILE_PATH, FS_O_CREATE | FS_O_RDWR);
+	zassert_equal(rc, 0, "Failed to create initial file (%d)", rc);
+	
+	rc = fs_write(&file, TEST_DATA, TEST_DATA_LEN);
+	zassert_equal(rc, TEST_DATA_LEN, "Failed to write initial data (%d)", rc);
+	
+	rc = fs_close(&file);
+	zassert_equal(rc, 0, "Failed to close file (%d)", rc);
+	
+	/* Open file in append mode */
+	rc = fs_open(&file, TEST_FILE_PATH, FS_O_APPEND | FS_O_RDWR);
+	zassert_equal(rc, 0, "Failed to open file for append (%d)", rc);
+	
+	/* Append data */
+	bytes_written = fs_write(&file, append_data, append_len);
+	zassert_equal(bytes_written, append_len, 
+		"Append write failed: expected %zu bytes, got %zd", 
+		append_len, bytes_written);
+	
+	/* Sync */
+	rc = fs_sync(&file);
+	zassert_equal(rc, 0, "fs_sync failed (%d)", rc);
+	
+	/* Close */
+	rc = fs_close(&file);
+	zassert_equal(rc, 0, "fs_close failed (%d)", rc);
+	
+	/* Open and read entire file */
+	rc = fs_open(&file, TEST_FILE_PATH, FS_O_READ);
+	zassert_equal(rc, 0, "Failed to open file for reading (%d)", rc);
+	
+	/* Read all data */
+	bytes_read = fs_read(&file, read_buffer, sizeof(read_buffer) - 1);
+	zassert_true(bytes_read >= TEST_DATA_LEN + append_len, 
+		"Read insufficient data: got %zd bytes, expected at least %zu",
+		bytes_read, TEST_DATA_LEN + append_len);
+	
+	/* Verify original data is still at the beginning */
+	read_buffer[bytes_read] = '\0';
+	zassert_equal(strncmp(read_buffer, TEST_DATA, TEST_DATA_LEN), 0,
+		"Original data corrupted after append");
+	
+	/* Verify appended data is at the end */
+	zassert_equal(strncmp(read_buffer + (bytes_read - append_len), 
+		append_data, append_len), 0,
+		"Appended data not found at end of file");
+	
+	/* Close */
+	rc = fs_close(&file);
+	zassert_equal(rc, 0, "fs_close failed (%d)", rc);
 }
 
 /**
- * @brief Test SD card filesystem operations error codes
+ * @brief Test file deletion
  */
-ZTEST(sd_card_test, test_sd_card_filesystem_operations_error_codes)
+ZTEST(sd_card_test, test_fs_file_delete)
 {
-    /* Test error codes for various filesystem operations */
-    int fs_error_codes[] = {
-        -ENODEV,    /* No such device */
-        -ENOENT,    /* No such file or directory */
-        -EIO,       /* I/O error */
-        -ENOSPC,    /* No space left on device */
-        -EACCES,    /* Permission denied */
-        -EEXIST,    /* File exists */
-        -ENOTDIR,   /* Not a directory */
-        -EISDIR,    /* Is a directory */
-        -ENFILE,    /* Too many open files */
-        -EMFILE,    /* Too many open files in system */
-    };
-    
-    /* Verify all error codes are negative */
-    for (int i = 0; i < ARRAY_SIZE(fs_error_codes); i++) {
-        zassert_true(fs_error_codes[i] < 0,
-                    "Filesystem error code %d should be negative", fs_error_codes[i]);
-    }
+	int rc;
+	struct fs_dirent dirent;
+
+	/* Create a temporary file */
+	const char *temp_path = TEST_MOUNT_POINT "/temp.txt";
+	
+	rc = fs_open(&file, temp_path, FS_O_CREATE | FS_O_RDWR);
+	zassert_equal(rc, 0, "Failed to create temp file (%d)", rc);
+	
+	rc = fs_write(&file, "temp", 4);
+	zassert_equal(rc, 4, "Failed to write to temp file (%d)", rc);
+	
+	rc = fs_close(&file);
+	zassert_equal(rc, 0, "Failed to close temp file (%d)", rc);
+	
+	/* Verify file exists */
+	rc = fs_stat(temp_path, &dirent);
+	zassert_equal(rc, 0, "Temp file should exist");
+	
+	/* Delete file */
+	rc = fs_unlink(temp_path);
+	zassert_equal(rc, 0, "Failed to delete file (%d)", rc);
+	
+	/* Verify file no longer exists */
+	rc = fs_stat(temp_path, &dirent);
+	zassert_true(rc < 0, "File should not exist after deletion");
 }
 
 /**
- * @brief Test SD card directory creation
+ * @brief Test filesystem unmount
  */
-ZTEST(sd_card_test, test_sd_card_directory_creation)
+ZTEST(sd_card_test, test_fs_unmount)
 {
-    const char *mount_point = "/SD:";
-    const char *logs_dir = "logs";
-    char dir_path[20];
-    
-    /* Construct directory path */
-    snprintk(dir_path, sizeof(dir_path), "%s%s", mount_point, logs_dir);
-    
-    /* Verify path is constructed correctly */
-    zassert_equal(strcmp(dir_path, "/SD:logs"), 0,
-                 "Logs directory path should be /SD:logs");
+	int rc;
+
+	/* Unmount the filesystem */
+	rc = fs_unmount(&mount);
+	zassert_equal(rc, 0, "Failed to unmount filesystem (%d)", rc);
+	
+	/* Verify it's no longer mounted by checking fs pointer is cleared */
+	/* Note: mount.fs may not be NULL immediately after unmount in all implementations */
+	/* So we just verify the unmount succeeded with rc == 0 */
+	
+	/* Remount for subsequent tests (setup will do this too, but be explicit) */
+	rc = fs_mount(&mount);
+	zassert_equal(rc, 0, "Failed to remount filesystem (%d)", rc);
 }
 
 /**
- * @brief Test SD card write operation success
+ * @brief Test error handling - opening non-existent file
  */
-ZTEST(sd_card_test, test_sd_card_write_operation_success)
+ZTEST(sd_card_test, test_fs_open_nonexistent)
 {
-    const char *test_message = "Test log message\n";
-    size_t message_len = strlen(test_message);
-    
-    /* Verify message length is reasonable */
-    zassert_true(message_len > 0 && message_len < LOG_BUFFER_SIZE,
-                "Test message should have reasonable length");
-    
-    /* In a real test, this would call fs_write and verify the return value */
-    /* For this unit test, we verify the message formatting */
-    zassert_true(strlen(test_message) == message_len,
-                "Message length should be correct");
+	int rc;
+	const char *nonexistent = TEST_MOUNT_POINT "/does_not_exist.txt";
+
+	/* Try to open non-existent file without CREATE flag */
+	rc = fs_open(&file, nonexistent, FS_O_READ);
+	zassert_true(rc < 0, "Opening non-existent file should fail");
+	zassert_equal(rc, -ENOENT, "Expected -ENOENT for non-existent file, got %d", rc);
 }
 
 /**
- * @brief Test SD card write operation failure
+ * @brief Test error handling - writing to read-only file
  */
-ZTEST(sd_card_test, test_sd_card_write_operation_failure)
+ZTEST(sd_card_test, test_fs_write_readonly)
 {
-    /* Test error codes that might be returned by fs_write */
-    int write_error_codes[] = {
-        -EIO,       /* I/O error */
-        -ENOSPC,    /* No space left on device */
-        -EACCES,    /* Permission denied */
-        -EBADF,     /* Bad file descriptor */
-        -EFAULT,    /* Bad address */
-    };
-    
-    /* Verify all error codes are negative */
-    for (int i = 0; i < ARRAY_SIZE(write_error_codes); i++) {
-        zassert_true(write_error_codes[i] < 0,
-                    "Write error code %d should be negative", write_error_codes[i]);
-    }
-}
+	int rc;
+	ssize_t bytes_written;
 
-/**
- * @brief Test SD card sync operation
- */
-ZTEST(sd_card_test, test_sd_card_sync_operation)
-{
-    /* Test that sync operation would be called after write */
-    /* In a real implementation, fs_sync would be called after fs_write */
-    
-    /* Verify that sync is important for data integrity */
-    zassert_true(true, "Sync operation should be called after write for data integrity");
+	/* Create directory first */
+	rc = fs_mkdir(TEST_DIR_PATH);
+	
+	/* Create a file */
+	rc = fs_open(&file, TEST_FILE_PATH, FS_O_CREATE | FS_O_RDWR);
+	zassert_equal(rc, 0, "Failed to create file (%d)", rc);
+	
+	/* Write some initial data */
+	rc = fs_write(&file, "init", 4);
+	zassert_equal(rc, 4, "Failed to write initial data (%d)", rc);
+	
+	/* Close it */
+	rc = fs_close(&file);
+	zassert_equal(rc, 0, "Failed to close file (%d)", rc);
+	
+	/* Open read-only */
+	rc = fs_open(&file, TEST_FILE_PATH, FS_O_READ);
+	zassert_equal(rc, 0, "Failed to open file read-only (%d)", rc);
+	
+	/* Try to write to read-only file */
+	bytes_written = fs_write(&file, "data", 4);
+	zassert_true(bytes_written < 0, "Writing to read-only file should fail");
+	
+	/* Close */
+	rc = fs_close(&file);
+	zassert_equal(rc, 0, "Failed to close file (%d)", rc);
 }
 
 /**
  * @brief Test suite definition
  */
-ZTEST_SUITE(sd_card_test, 
-           NULL, 
-           sd_card_test_setup,
-           NULL,
-           NULL,
-           sd_card_test_teardown);
+ZTEST_SUITE(sd_card_test,
+	   NULL,
+	   sd_card_test_setup,
+	   NULL,
+	   NULL,
+	   sd_card_test_teardown);

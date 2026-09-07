@@ -269,6 +269,15 @@ The project uses **Zephyr's integrated testing framework** with:
 - **Twister**: Python-based test runner and automation tool
 - **Native Simulation**: `native_sim/native/64` platform for hardware-independent testing (64-bit LP64 ABI)
 
+### Filesystem Testing (SD Card / FatFS)
+
+For testing filesystem/SD card code, refer to official Zephyr documentation and samples:
+- **Official Samples**: See [Fatfs filesystem fstab sample](https://docs.zephyrproject.org/latest/samples/subsys/fs/fatfs_fstab/README.html) and [File System manipulation sample](https://docs.zephyrproject.org/latest/samples/subsys/fs/fs_sample/README.html)
+- **Zephyr Tests**: Reference `zephyr/tests/subsys/fs/fat_fs_api/` for proper filesystem testing patterns using `fs_mount()`, `fs_open()`, `fs_write()`, `fs_read()`, `fs_sync()`
+- **For native_sim**: Use ramdisk with FatFS - see `samples/subsys/fs/fatfs_fstab` which can be built with `west build -b native_sim samples/subsys/fs/fatfs_fstab -- -DDTC_OVERLAY_FILE=fatfs_fstab.overlay`
+- **Kconfig Requirements**: For FatFS tests, ensure `CONFIG_FS_FATFS_CUSTOM_MOUNT_POINT_COUNT=1` and `CONFIG_FS_FATFS_CUSTOM_MOUNT_POINTS="SD"` are set (see `zephyr/tests/subsys/fs/fat_fs_api/prj_sdmmc.conf`)
+- **DO NOT**: Write unit tests that only check string formatting or constants without actually exercising filesystem operations
+
 ### Test Organization
 
 Each test module follows the same structure:
