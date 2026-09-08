@@ -10,7 +10,7 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(console, CONFIG_LOG_LEVEL_GLOBAL);
+LOG_MODULE_REGISTER(console);
 
 /**
  * @brief Print status information to console

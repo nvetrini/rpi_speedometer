@@ -34,15 +34,6 @@ config APP_SIMULATION
       simulate a button press, and set a fake battery voltage while
       running the app on native_sim.
 
-config LOG_LEVEL_GLOBAL
-	int "Global application log level"
-	default 3
-	range 0 4
-	help
-		Sets the default log level for all application modules.
-		0 - None, 1 - Error, 2 - Warning, 3 - Info, 4 - Debug
-		Individual modules can still use LOG_LEVEL_SET() to override.
-
 endmenu
 
 source "Kconfig.zephyr"

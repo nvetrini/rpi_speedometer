@@ -12,7 +12,7 @@
 #include <zephyr/drivers/adc.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(battery, CONFIG_LOG_LEVEL_GLOBAL);
+LOG_MODULE_REGISTER(battery);
 
 /* Devicetree configuration */
 #define USER_NODE DT_PATH(zephyr_user)

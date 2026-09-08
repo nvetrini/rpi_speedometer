@@ -13,7 +13,7 @@
 #include <zephyr/logging/log.h>
 #include <errno.h>
 
-LOG_MODULE_REGISTER(storage, CONFIG_LOG_LEVEL_GLOBAL);
+LOG_MODULE_REGISTER(storage);
 
 #ifdef CONFIG_SD_CARD_ENABLED
 #include <zephyr/fs/fs.h>
@@ -81,18 +81,30 @@ static int settings_wheel_diameter_handler(const char *key, size_t len,
 int storage_init(struct wheel_config *wheel_config)
 {
 	wheel_config_ptr = wheel_config;
-	
+
 	/* Initialize settings subsystem */
-	settings_subsys_init();
-	
+	int ret = settings_subsys_init();
+	if (ret < 0) {
+	  LOG_ERR("Settings subsystem initialization failed: %d", -ret);
+      return ret;
+	}
+
 	/* Register settings handler */
 	wheel_diameter_handler.name = "wheel_diameter";
 	wheel_diameter_handler.h_set = settings_wheel_diameter_handler;
-	settings_register(&wheel_diameter_handler);
-	
+	ret = settings_register(&wheel_diameter_handler);
+	if (ret < 0) {
+	    LOG_ERR("Failed to register wheel settings handler: %d", -ret);
+		return ret;
+	}
+
 	/* Load all settings */
-	settings_load();
-	
+	ret = settings_load();
+	if (ret < 0) {
+	  LOG_ERR("Failed to read settings: %d", -ret);
+      return ret;
+	}
+
 	return 0;
 }
 

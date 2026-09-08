@@ -9,9 +9,15 @@
 #include <zephyr/fs/fs.h>
 #include <app.h>
 #include <storage.h>
+#include <errno.h>
 
 /* Test fixtures */
 static struct wheel_config test_wheel_config;
+
+/* Mock control functions (defined in mocks_storage.c) */
+void test_set_settings_subsys_init_return(int ret);
+void test_set_settings_register_return(int ret);
+void test_reset_settings_mocks(void);
 
 /**
  * @brief Test setup function - runs before each test
@@ -20,6 +26,10 @@ static void *storage_test_setup(void)
 {
     /* Reset wheel config */
     test_wheel_config.diameter_cm = DEFAULT_WHEEL_DIAMETER_CM;
+
+    /* Reset all mocks to success state */
+    test_reset_settings_mocks();
+
     return NULL;
 }
 
@@ -29,6 +39,9 @@ static void *storage_test_setup(void)
 static void storage_test_teardown(void *fixture)
 {
     ARG_UNUSED(fixture);
+
+    /* Reset mocks after test */
+    test_reset_settings_mocks();
 }
 
 /**
@@ -173,6 +186,63 @@ ZTEST(storage_test, test_storage_error_handling)
         zassert_true(error_codes[i] < 0,
                     "Error code %d should be negative", error_codes[i]);
     }
+}
+
+/**
+ * @brief Test storage_init failure when settings_subsys_init fails
+ */
+ZTEST(storage_test, test_storage_init_subsys_fail)
+{
+    /* Set up mock to simulate settings_subsys_init failure */
+    test_set_settings_subsys_init_return(-ENODEV);
+
+    /* Call storage_init - should fail with same error */
+    int ret = storage_init(&test_wheel_config);
+
+    /* Verify that storage_init returns the error from settings_subsys_init */
+    zassert_equal(ret, -ENODEV,
+                 "storage_init should return -ENODEV when settings_subsys_init fails");
+
+    /* Reset mocks for subsequent tests */
+    test_reset_settings_mocks();
+}
+
+/**
+ * @brief Test storage_init failure when settings_register fails
+ */
+ZTEST(storage_test, test_storage_init_register_fail)
+{
+    /* Reset mocks first */
+    test_reset_settings_mocks();
+
+    /* Set up mock to simulate settings_register failure */
+    test_set_settings_register_return(-ENOMEM);
+
+    /* Call storage_init - should fail with settings_register error */
+    int ret = storage_init(&test_wheel_config);
+
+    /* Verify that storage_init returns the error from settings_register */
+    zassert_equal(ret, -ENOMEM,
+                 "storage_init should return -ENOMEM when settings_register fails");
+
+    /* Reset mocks for subsequent tests */
+    test_reset_settings_mocks();
+}
+
+/**
+ * @brief Test storage_init success path
+ */
+ZTEST(storage_test, test_storage_init_success)
+{
+    /* Reset mocks to return success */
+    test_reset_settings_mocks();
+
+    /* Call storage_init - should succeed */
+    int ret = storage_init(&test_wheel_config);
+
+    /* Verify that storage_init returns success */
+    zassert_equal(ret, 0,
+                 "storage_init should return 0 on success");
 }
 
 /**

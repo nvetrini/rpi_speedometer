@@ -14,7 +14,7 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(display, CONFIG_LOG_LEVEL_GLOBAL);
+LOG_MODULE_REGISTER(display);
 
 #if IS_ENABLED(CONFIG_DISPLAY) && IS_ENABLED(CONFIG_CHARACTER_FRAMEBUFFER) && \
 	DT_HAS_CHOSEN(zephyr_display)

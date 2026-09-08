@@ -1,6 +1,9 @@
 /**
  * @file mocks_storage.c
  * @brief Mock implementations for storage testing
+ *
+ * This file provides mock implementations of Zephyr settings and filesystem
+ * functions that override the real implementations when linked with tests.
  */
 
 #include <zephyr/kernel.h>
@@ -8,6 +11,7 @@
 #include <zephyr/storage/flash_map.h>
 #include <zephyr/fs/fs.h>
 #include <app.h>
+#include <errno.h>
 
 /* Mock settings handler */
 static struct settings_handler mock_settings_handler;
@@ -21,29 +25,65 @@ static struct fs_mount_t mock_mount;
 /* Mock file object */
 static struct fs_file_t mock_file;
 
-/* Mock settings_load function */
-int mock_settings_load(void)
+/* Control variables for mock behavior */
+static int g_mock_settings_subsys_init_return = 0;
+static int g_mock_settings_register_return = 0;
+
+/* Mock settings_load function - override real implementation */
+int settings_load(void)
 {
     return 0; /* Success */
 }
 
-/* Mock settings_save_one function */
-int mock_settings_save_one(const char *name, const void *value, size_t len)
+/* Mock settings_save_one function - override real implementation */
+int settings_save_one(const char *name, const void *value, size_t len)
 {
+    ARG_UNUSED(name);
+    ARG_UNUSED(value);
+    ARG_UNUSED(len);
     return 0; /* Success */
 }
 
-/* Mock settings_register function */
-int mock_settings_register(struct settings_handler *handler)
+/* Mock settings_register function - override real implementation */
+int settings_register(struct settings_handler *handler)
 {
-    mock_settings_handler = *handler;
-    return 0; /* Success */
+    if (handler != NULL) {
+        mock_settings_handler = *handler;
+    }
+    return g_mock_settings_register_return;
 }
 
-/* Mock settings_subsys_init function */
-void mock_settings_subsys_init(void)
+/* Mock settings_subsys_init function - override real implementation */
+int settings_subsys_init(void)
 {
-    /* Do nothing in mock */
+    return g_mock_settings_subsys_init_return;
+}
+
+/**
+ * @brief Set the return value for settings_subsys_init mock
+ * @param ret Value to return (0 for success, negative errno for error)
+ */
+void test_set_settings_subsys_init_return(int ret)
+{
+    g_mock_settings_subsys_init_return = ret;
+}
+
+/**
+ * @brief Set the return value for settings_register mock
+ * @param ret Value to return (0 for success, negative errno for error)
+ */
+void test_set_settings_register_return(int ret)
+{
+    g_mock_settings_register_return = ret;
+}
+
+/**
+ * @brief Reset mock return values to success
+ */
+void test_reset_settings_mocks(void)
+{
+    g_mock_settings_subsys_init_return = 0;
+    g_mock_settings_register_return = 0;
 }
 
 /* Mock fs_mount function */

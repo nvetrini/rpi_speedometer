@@ -20,7 +20,7 @@
 #include <zephyr/sys/util.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(app, CONFIG_LOG_LEVEL_GLOBAL);
+LOG_MODULE_REGISTER(app);
 
 /* Global state instances */
 static struct wheel_sensor_state wheel_sensor_state = {
