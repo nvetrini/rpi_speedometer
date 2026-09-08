@@ -9,7 +9,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <errno.h>
 
 /**
  * @brief Print status to console
@@ -46,19 +45,5 @@ void console_print_battery(int percentage, float voltage);
  * @param diameter_cm Wheel diameter
  */
 void console_print_init(int diameter_cm);
-
-/**
- * @brief Print error message with errno
- * @param msg Error message
- * @param errno_code Error code (0 if not applicable)
- */
-void console_print_error(const char *msg, int errno_code);
-
-/**
- * @brief Print warning message with errno
- * @param msg Warning message
- * @param errno_code Error code (0 if not applicable)
- */
-void console_print_warning(const char *msg, int errno_code);
 
 #endif /* CONSOLE_OUTPUT_H */

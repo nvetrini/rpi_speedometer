@@ -10,7 +10,9 @@
 #include <battery.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/adc.h>
-#include <zephyr/sys/printk.h>
+#include <zephyr/logging/log.h>
+
+LOG_MODULE_REGISTER(battery, CONFIG_LOG_LEVEL_GLOBAL);
 
 /* Devicetree configuration */
 #define USER_NODE DT_PATH(zephyr_user)
@@ -32,16 +34,16 @@ int battery_init(void)
 
 /**
  * @brief Read battery voltage and update state
+ *
+ * Battery must be already initialized via a successful call to
+ * battery_init() prior to calling this function.
+ *
  * @implements REQ-SW-401, REQ-SW-402, REQ-SW-410
  * @param battery_state Pointer to battery state structure to update
  * @return 0 on success, negative errno on failure
  */
 int battery_read(struct battery_state *battery_state)
 {
-	if (!device_is_ready(battery_adc.dev)) {
-		return -ENODEV;
-	}
-
 	int16_t adc_value;
 	struct adc_sequence sequence = {
 		.channels = BIT(battery_adc.channel_id),
@@ -52,7 +54,7 @@ int battery_read(struct battery_state *battery_state)
 
 	int ret = adc_read(battery_adc.dev, &sequence);
 	if (ret < 0) {
-		printk("Battery ADC read error: %d\n", ret);
+		LOG_ERR("Battery ADC read error: %d", ret);
 		return ret;
 	}
 

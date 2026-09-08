@@ -7,7 +7,7 @@
 #ifndef BATTERY_H
 #define BATTERY_H
 
-#include <app.h>
+#include "app.h"
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/adc.h>
@@ -17,14 +17,14 @@
  * @brief Initialize battery ADC
  * @return 0 on success, negative errno on failure
  */
-int battery_init(void);
+__must_check int battery_init(void);
 
 /**
  * @brief Read battery voltage and update state
  * @param battery_state Pointer to battery state structure to update
  * @return 0 on success, negative errno on failure
  */
-int battery_read(struct battery_state *battery_state);
+__must_check int battery_read(struct battery_state *battery_state);
 
 /**
  * @brief Convert ADC value to battery voltage

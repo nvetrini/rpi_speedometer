@@ -12,6 +12,9 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
+#include <zephyr/logging/log.h>
+
+LOG_MODULE_REGISTER(display, CONFIG_LOG_LEVEL_GLOBAL);
 
 #if IS_ENABLED(CONFIG_DISPLAY) && IS_ENABLED(CONFIG_CHARACTER_FRAMEBUFFER) && \
 	DT_HAS_CHOSEN(zephyr_display)
@@ -32,7 +35,7 @@ int display_init(void)
 
 	display_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
 	if (!device_is_ready(display_dev)) {
-		printk("Warning: display device not ready\n");
+		LOG_WRN("Display device not ready");
 		return -ENODEV;
 	}
 
@@ -41,19 +44,19 @@ int display_init(void)
 		ret = display_set_pixel_format(display_dev, PIXEL_FORMAT_MONO01);
 	}
 	if (ret < 0) {
-		printk("Warning: display does not support mono pixel formats: %d\n", ret);
+		LOG_WRN("Display does not support mono pixel formats: %d", ret);
 		return ret;
 	}
 
 	ret = cfb_framebuffer_init(display_dev);
 	if (ret < 0) {
-		printk("Warning: failed to initialize display framebuffer: %d\n", ret);
+		LOG_WRN("Failed to initialize display framebuffer: %d", ret);
 		return ret;
 	}
 
 	ret = cfb_framebuffer_set_font(display_dev, 0);
 	if (ret < 0) {
-		printk("Warning: failed to select default display font: %d\n", ret);
+		LOG_WRN("Failed to select default display font: %d", ret);
 		return ret;
 	}
 
@@ -64,7 +67,7 @@ int display_init(void)
 
 	ret = display_blanking_off(display_dev);
 	if (ret < 0 && ret != -ENOSYS) {
-		printk("Warning: failed to unblank display: %d\n", ret);
+		LOG_WRN("Failed to unblank display: %d", ret);
 	}
 
 	display_initialized = true;

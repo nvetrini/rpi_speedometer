@@ -8,7 +8,9 @@
 
 #include <console_output.h>
 #include <zephyr/sys/printk.h>
-#include <errno.h>
+#include <zephyr/logging/log.h>
+
+LOG_MODULE_REGISTER(console, CONFIG_LOG_LEVEL_GLOBAL);
 
 /**
  * @brief Print status information to console
@@ -26,7 +28,7 @@ void console_print_status(uint32_t current_count, float speed_kmh,
 		speed_frac = 9U;
 	}
 
-	printk("revs=%u  speed=%d.%01u km/h  distance=%u m  diameter=%d cm\n",
+	LOG_DBG("revs=%u  speed=%d.%01u km/h  distance=%u m  diameter=%d cm",
 		current_count,
 		(int)speed_kmh,
 		speed_frac,
@@ -43,9 +45,9 @@ void console_print_status(uint32_t current_count, float speed_kmh,
 void console_print_settings_mode(bool in_settings_mode, int diameter_cm)
 {
 	if (in_settings_mode) {
-		printk("Entering settings mode. Current diameter: %d cm\n", diameter_cm);
+		LOG_INF("Entering settings mode. Current diameter: %d cm", diameter_cm);
 	} else {
-		printk("Exiting settings mode. Wheel diameter set to: %d cm\n", diameter_cm);
+		LOG_INF("Exiting settings mode. Wheel diameter set to: %d cm", diameter_cm);
 	}
 }
 
@@ -56,7 +58,7 @@ void console_print_settings_mode(bool in_settings_mode, int diameter_cm)
  */
 void console_print_diameter(int diameter_cm)
 {
-	printk("Wheel diameter: %d cm\n", diameter_cm);
+	LOG_INF("Wheel diameter: %d cm", diameter_cm);
 }
 
 /**
@@ -67,7 +69,7 @@ void console_print_diameter(int diameter_cm)
  */
 void console_print_battery(int percentage, float voltage)
 {
-	printk("Battery: %d%% (%.2fV)\n", percentage, (double)voltage);
+	LOG_INF("Battery: %d%% (%.2fV)", percentage, (double)voltage);
 }
 
 /**
@@ -77,37 +79,7 @@ void console_print_battery(int percentage, float voltage)
  */
 void console_print_init(int diameter_cm)
 {
-	printk("Wheel diameter: %d cm\n", diameter_cm);
-	printk("Wheel sensor ready, waiting for revolutions...\n");
-	printk("Press button 1 twice quickly to enter settings mode\n");
-}
-
-/**
- * @brief Print error message to console
- * @implements REQ-SW-703
- * @param msg Error message
- * @param errno_code Error code (0 if none)
- */
-void console_print_error(const char *msg, int errno_code)
-{
-	if (errno_code != 0) {
-		printk("Error: %s: (%d)\n", msg, errno_code);
-	} else {
-		printk("Error: %s\n", msg);
-	}
-}
-
-/**
- * @brief Print warning message to console
- * @implements REQ-SW-704
- * @param msg Warning message
- * @param errno_code Error code (0 if none)
- */
-void console_print_warning(const char *msg, int errno_code)
-{
-	if (errno_code != 0) {
-		printk("Warning: %s: (%d)\n", msg, errno_code);
-	} else {
-		printk("Warning: %s\n", msg);
-	}
+	LOG_INF("Wheel diameter: %d cm", diameter_cm);
+	LOG_INF("Wheel sensor ready, waiting for revolutions...");
+	LOG_INF("Press button 1 twice quickly to enter settings mode");
 }

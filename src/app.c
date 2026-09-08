@@ -18,6 +18,9 @@
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
+#include <zephyr/logging/log.h>
+
+LOG_MODULE_REGISTER(app, CONFIG_LOG_LEVEL_GLOBAL);
 
 /* Global state instances */
 static struct wheel_sensor_state wheel_sensor_state = {
@@ -95,7 +98,7 @@ int app_run(void)
 	/* Initialize storage/NVS first so settings can be loaded */
 	ret = storage_init(&wheel_config);
 	if (ret < 0) {
-		console_print_error("Storage initialization failed", -ret);
+		LOG_ERR("Storage initialization failed: %d", -ret);
 		return ret;
 	}
 
@@ -104,7 +107,7 @@ int app_run(void)
 	/* Initialize display */
 	ret = display_init();
 	if (ret < 0) {
-		console_print_warning("Display initialization failed, continuing without display", -ret);
+		LOG_WRN("Display initialization failed: %d, continuing without display", -ret);
 	} else {
 		queue_app_state_update();
 	}
@@ -112,27 +115,27 @@ int app_run(void)
 	/* Initialize SD card for logging */
 	ret = storage_sd_init();
 	if (ret < 0) {
-		console_print_warning("SD card initialization failed, continuing without SD card", -ret);
+		LOG_WRN("SD card initialization failed: %d, continuing without SD card", -ret);
 	} else {
 		ret = storage_log_open();
 		if (ret < 0) {
-			console_print_warning("Failed to open log file, continuing without SD card logging", -ret);
+			LOG_WRN("Failed to open log file: %d, continuing without SD card logging", -ret);
 		} else {
-			printk("SD card logging initialized\n");
+			LOG_INF("SD card logging initialized");
 		}
 	}
 
 	/* Initialize battery monitoring */
 	ret = battery_init();
 	if (ret < 0) {
-		console_print_error("Battery initialization failed", -ret);
+		LOG_ERR("Battery initialization failed: %d", -ret);
 		return ret;
 	}
 
 	/* Initialize wheel sensor */
 	ret = wheel_sensor_init(&wheel_sensor_state);
 	if (ret < 0) {
-		console_print_error("Wheel sensor initialization failed", -ret);
+		LOG_ERR("Wheel sensor initialization failed: %d", -ret);
 		return ret;
 	}
 
@@ -140,7 +143,7 @@ int app_run(void)
 	button_set_wheel_config(&wheel_config);
 	ret = button_init(&button_state);
 	if (ret < 0) {
-		console_print_warning("Button initialization failed, continuing without buttons", -ret);
+		LOG_WRN("Button initialization failed: %d, continuing without buttons", -ret);
 	}
 
 	uint32_t battery_sample_counter = 0;
@@ -151,8 +154,12 @@ int app_run(void)
 		/* Sample battery voltage periodically */
 		battery_sample_counter++;
 		if (battery_sample_counter >= BATTERY_SAMPLE_INTERVAL_S) {
-			battery_read(&battery_state);
-			console_print_battery(battery_state.percentage, battery_state.voltage);
+			int battery_ret = battery_read(&battery_state);
+			if (battery_ret < 0) {
+				LOG_ERR("Battery read failed: %d", battery_ret);
+			} else {
+				console_print_battery(battery_state.percentage, battery_state.voltage);
+			}
 			battery_sample_counter = 0;
 		}
 
@@ -160,16 +167,16 @@ int app_run(void)
 		if (button_state.settings_mode_changed) {
 			button_state.settings_mode_changed = false;
 			if (button_state.in_settings_mode) {
-				printk("Entering settings mode. Current diameter: %d cm\n",
+				LOG_INF("Entering settings mode. Current diameter: %d cm",
 					button_state.diameter_value);
 			} else {
-				printk("Exiting settings mode. Wheel diameter set to: %d cm\n",
+				LOG_INF("Exiting settings mode. Wheel diameter set to: %d cm",
 					button_state.diameter_value);
 			}
 		}
 		if (button_state.diameter_changed) {
 			button_state.diameter_changed = false;
-			printk("Wheel diameter: %d cm\n", button_state.diameter_value);
+			LOG_INF("Wheel diameter: %d cm", button_state.diameter_value);
 		}
 
 		/* If in settings mode, skip speed calculation but still update display */
@@ -180,7 +187,7 @@ int app_run(void)
 
 		/* Get current revolution count */
 		uint32_t current_count = wheel_sensor_get_count(&wheel_sensor_state);
-		
+
 		/* Calculate speed and distance */
 		speed_calculator_update(
 			current_count, runtime_state.last_count,

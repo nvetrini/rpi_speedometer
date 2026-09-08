@@ -10,7 +10,10 @@
 #include <storage.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
+#include <zephyr/logging/log.h>
 #include <errno.h>
+
+LOG_MODULE_REGISTER(storage, CONFIG_LOG_LEVEL_GLOBAL);
 
 #ifdef CONFIG_SD_CARD_ENABLED
 #include <zephyr/fs/fs.h>
@@ -56,11 +59,11 @@ static int settings_wheel_diameter_handler(const char *key, size_t len,
 
 		if (val >= MIN_WHEEL_DIAMETER_CM && val <= MAX_WHEEL_DIAMETER_CM && wheel_config_ptr != NULL) {
 			wheel_config_ptr->diameter_cm = val;
-			printk("Loaded wheel diameter: %d cm\n", val);
+			LOG_INF("Loaded wheel diameter: %d cm", val);
 			return 0;
 		} else {
 			if (val < MIN_WHEEL_DIAMETER_CM || val > MAX_WHEEL_DIAMETER_CM) {
-				printk("Invalid wheel diameter value: %d cm\n", val);
+				LOG_WRN("Invalid wheel diameter value: %d cm", val);
 			}
 			return -EINVAL;
 		}
@@ -104,18 +107,18 @@ int storage_sd_init(void)
 	/* Get the SDHC SPI device from devicetree */
 	sd_card_dev = DEVICE_DT_GET(DT_NODELABEL(sdhc0));
 	if (sd_card_dev == NULL || !device_is_ready(sd_card_dev)) {
-		printk("Error: SD card device not ready\n");
+		LOG_ERR("SD card device not ready");
 		return -ENODEV;
 	}
 
 	/* Mount the filesystem */
 	int ret = fs_mount(&sd_fs_mount);
 	if (ret < 0) {
-		printk("Error: Failed to mount filesystem: %d\n", ret);
+		LOG_ERR("Failed to mount filesystem: %d", ret);
 		return ret;
 	}
 
-	printk("SD card device found, mounted, and ready\n");
+	LOG_INF("SD card device found, mounted, and ready");
 	return 0;
 }
 #endif
@@ -147,7 +150,7 @@ int storage_log_open(void)
 	struct fs_dirent dir_entry;
 	ret = fs_stat(logs_dir_path, &dir_entry);
 	if (ret < 0 && ret != -ENOENT) {
-		printk("Error: Failed to check logs directory: %d\n", ret);
+		LOG_ERR("Failed to check logs directory: %d", ret);
 		return ret;
 	}
 
@@ -155,22 +158,22 @@ int storage_log_open(void)
 		/* Directory doesn't exist, create it */
 		ret = fs_mkdir(logs_dir_path);
 		if (ret < 0) {
-			printk("Error: Failed to create logs directory: %d\n", ret);
+			LOG_ERR("Failed to create logs directory: %d", ret);
 			return ret;
 		}
-		printk("Created logs directory\n");
+		LOG_INF("Created logs directory");
 	}
 
 	/* Open log file for appending */
 	ret = fs_open(&log_file, log_file_path,
 			FS_O_WRITE | FS_O_APPEND | FS_O_CREATE);
 	if (ret < 0) {
-		printk("Error: Failed to open log file: %d\n", ret);
+		LOG_ERR("Failed to open log file: %d", ret);
 		log_file.mp = NULL;
 		return ret;
 	}
 
-	printk("Opened log file at %s\n", log_file_path);
+	LOG_INF("Opened log file at %s", log_file_path);
 	log_initialized = true;
 	return 0;
 }
@@ -194,7 +197,7 @@ void storage_log_write(const char *msg)
 	/* Write the message to the log file */
 	ret = fs_write(&log_file, msg, len);
 	if (ret < 0) {
-		printk("Error: Failed to write to log file: %d\n", ret);
+		LOG_ERR("Failed to write to log file: %d", ret);
 	} else {
 		/* Ensure data is written to disk */
 		fs_sync(&log_file);
@@ -212,7 +215,7 @@ void storage_save_wheel_diameter(const struct wheel_config *wheel_config)
 	int rc = settings_save_one("wheel_diameter/wheel_diameter",
 				&wheel_config->diameter_cm, sizeof(int));
 	if (rc < 0) {
-		printk("Failed to save wheel diameter setting: %d\n", rc);
+		LOG_ERR("Failed to save wheel diameter setting: %d", rc);
 	}
 }
 
