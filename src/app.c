@@ -9,11 +9,14 @@
 #include <app.h>
 #include <wheel_sensor.h>
 #include <button.h>
-#include <battery.h>
 #include <speed_calculator.h>
 #include <display_output.h>
 #include <console_output.h>
 #include <storage.h>
+
+#ifdef CONFIG_BATTERY_ENABLED
+#include <battery.h>
+#endif
 
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
@@ -48,11 +51,13 @@ static struct runtime_state runtime_state = {
 	.last_speed_kmh = 0.0f,
 };
 
+#ifdef CONFIG_BATTERY_ENABLED
 static struct battery_state battery_state = {
 	.percentage = -1,
 	.voltage = 0.0f,
 	.valid = false,
 };
+#endif
 
 static void app_state_work_handler(struct k_work *work);
 
@@ -73,7 +78,11 @@ static void app_state_work_handler(struct k_work *work)
 	}
 
 	if (display_is_available()) {
+#ifdef CONFIG_BATTERY_ENABLED
 		display_render(&button_state, &wheel_config, &runtime_state, &battery_state);
+#else
+		display_render(&button_state, &wheel_config, &runtime_state, NULL);
+#endif
 	}
 }
 
@@ -125,12 +134,14 @@ int app_run(void)
 		}
 	}
 
+#ifdef CONFIG_BATTERY_ENABLED
 	/* Initialize battery monitoring */
 	ret = battery_init();
 	if (ret < 0) {
 		LOG_ERR("Battery initialization failed: %d", -ret);
 		return ret;
 	}
+#endif
 
 	/* Initialize wheel sensor */
 	ret = wheel_sensor_init(&wheel_sensor_state);
@@ -146,11 +157,14 @@ int app_run(void)
 		LOG_WRN("Button initialization failed: %d, continuing without buttons", -ret);
 	}
 
+#ifdef CONFIG_BATTERY_ENABLED
 	uint32_t battery_sample_counter = 0;
+#endif
 
 	while (1) {
 		k_msleep(REPORT_INTERVAL_MS);
 
+#ifdef CONFIG_BATTERY_ENABLED
 		/* Sample battery voltage periodically */
 		battery_sample_counter++;
 		if (battery_sample_counter >= BATTERY_SAMPLE_INTERVAL_S) {
@@ -162,6 +176,7 @@ int app_run(void)
 			}
 			battery_sample_counter = 0;
 		}
+#endif
 
 		/* Handle deferred button press messages (from ISR) */
 		if (button_state.settings_mode_changed) {

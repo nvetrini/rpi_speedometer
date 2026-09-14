@@ -146,7 +146,7 @@ void display_render(const struct button_state *button_state,
 		snprintk(line1, sizeof(line1), "Speed: %d.%01u km/h", speed_whole, speed_frac);
 		snprintk(line2, sizeof(line2), "Distance: %u m", runtime_state->total_distance_m);
 		snprintk(line3, sizeof(line3), "Wheel: %d cm", wheel_config->diameter_cm);
-		if (battery_state->valid) {
+		if (battery_state != NULL && battery_state->valid) {
 			snprintk(line4, sizeof(line4), "Battery: %d%% %.2fV",
 				battery_state->percentage, (double)battery_state->voltage);
 		} else {

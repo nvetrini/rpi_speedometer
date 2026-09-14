@@ -26,6 +26,15 @@ config SD_CARD_ENABLED
 		When enabled, the SD card driver and filesystem support are included.
 		When disabled, all SD card-related code and dependencies are excluded.
 
+config BATTERY_ENABLED
+	bool "Enable battery monitoring via ADC"
+	default y
+	select ADC
+	help
+		Enable support for battery voltage monitoring via ADC.
+		When enabled, the ADC driver and battery monitoring functionality are included.
+		When disabled, all battery-related code and dependencies are excluded.
+
 config APP_SIMULATION
     bool "Enable shell commands to drive simulated peripherals"
     depends on GPIO_EMUL || ADC_EMUL

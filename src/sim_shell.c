@@ -2,8 +2,6 @@
 #include <zephyr/shell/shell.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/gpio/gpio_emul.h>
-#include <zephyr/drivers/adc.h>
-#include <zephyr/drivers/adc/adc_emul.h>
 #include <stdlib.h>
 
 /*
@@ -18,7 +16,12 @@
 static const struct gpio_dt_spec reed   = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), wheel_sensor_gpios);
 static const struct gpio_dt_spec button1 = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), button1_gpios);
 static const struct gpio_dt_spec button2 = GPIO_DT_SPEC_GET(DT_PATH(zephyr_user), button2_gpios);
+
+#ifdef CONFIG_BATTERY_ENABLED
+#include <zephyr/drivers/adc.h>
+#include <zephyr/drivers/adc/adc_emul.h>
 static const struct adc_dt_spec battery_adc = ADC_DT_SPEC_GET_BY_IDX(DT_PATH(zephyr_user), 0);
+#endif
 
 /**
  * @brief Toggle reed switch simulation
@@ -79,6 +82,7 @@ static int cmd_button2_press(const struct shell *sh, size_t argc, char **argv)
     return 0;
 }
 
+#ifdef CONFIG_BATTERY_ENABLED
 /**
  * @brief Set battery voltage for simulation
  * @implements REQ-SW-805
@@ -95,6 +99,7 @@ static int cmd_battery_set(const struct shell *sh, size_t argc, char **argv)
     shell_print(sh, "battery set to %s mV", argv[1]);
     return 0;
 }
+#endif
 
 /**
  * @brief Register simulation commands
@@ -105,7 +110,9 @@ SHELL_STATIC_SUBCMD_SET_CREATE(sim_cmds,
     SHELL_CMD(wheel, NULL, "Simulate wheel revs [count] [ms]", cmd_wheel),
     SHELL_CMD(button1, NULL, "Simulate button 1 press", cmd_button1_press),
     SHELL_CMD(button2, NULL, "Simulate button 2 press", cmd_button2_press),
+#ifdef CONFIG_BATTERY_ENABLED
     SHELL_CMD(battery, NULL, "Set battery mV", cmd_battery_set),
+#endif
     SHELL_SUBCMD_SET_END
 );
 SHELL_CMD_REGISTER(sim, &sim_cmds, "Simulation controls", NULL);

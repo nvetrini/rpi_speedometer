@@ -12,12 +12,16 @@ target_sources(app PRIVATE
     src/app.c
     src/wheel_sensor.c
     src/button.c
-    src/battery.c
     src/speed_calculator.c
     src/display_output.c
     src/console_output.c
     src/storage.c
 )
+
+# Battery monitoring (optional)
+if(CONFIG_BATTERY_ENABLED)
+    target_sources(app PRIVATE src/battery.c)
+endif()
 
 # Simulation shell (optional)
 if(CONFIG_APP_SIMULATION)
