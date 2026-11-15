@@ -38,12 +38,16 @@ generated UF2 image to it.)
 
 ## View output
 
-The sample prints to the console (USB CDC-ACM or UART depending on
-your prj.conf/board defaults). Connect with a serial terminal, e.g.:
+The Pico build exposes its console over USB CDC-ACM. After flashing, connect
+the Pico normally (without holding BOOTSEL) and find its serial device with
+`dmesg | grep ttyACM`. Connect with a serial terminal, for example:
 
 ```
 minicom -D /dev/ttyACM0 -b 115200
 ```
+
+The device number may differ. Output produced before the terminal connects may
+be missed; ongoing speed and distance reports continue after connecting.
 
 ## Notes / next steps
 
