@@ -61,9 +61,9 @@
 	};
 };
 
-&spi1 {
+&spi0 {
         status = "okay";
-        cs-gpios = <&gpio0 17 GPIO_ACTIVE_LOW>;
+        cs-gpios = <&gpio0 16 GPIO_ACTIVE_LOW>;
 
         sdhc0: sdhc@0 {
                 compatible = "zephyr,sdhc-spi-slot";

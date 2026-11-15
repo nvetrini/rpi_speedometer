@@ -27,10 +27,16 @@ west build -b rpi_pico /path/to/wheel_sensor_app
 
 ## Flash
 
-Hold the BOOTSEL button on the Pico while plugging it into USB, then:
+Hold the BOOTSEL button on the Pico while plugging it into USB, then mount it with e.g.:
 
 ```
-west flash
+udisksctl mount -b /dev/sda1
+```
+
+and then flash with:
+
+```
+west flash --runner uf2
 ```
 
 (This mounts the Pico as a USB mass-storage device and copies the
@@ -46,7 +52,7 @@ your prj.conf/board defaults). Unplug the USB and re-plug not holding BOOTSEL, t
 connect with a serial terminal, e.g.:
 
 ```
-minicom -D /dev/ttyACM0 -b 115200
+sudo minicom -D /dev/ttyACM0 -b 115200
 ```
 
 The device number may differ. Output produced before the terminal connects may
