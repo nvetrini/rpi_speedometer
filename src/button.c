@@ -5,7 +5,9 @@
  * Button 1: Double-press toggles settings mode, single press increments diameter
  * Button 2: Single press decrements diameter in settings mode
  *
- * @implements REQ-HW-020, REQ-HW-021, REQ-HW-022, REQ-HW-023, REQ-SW-301, REQ-SW-302, REQ-SW-303, REQ-SW-304, REQ-SW-305, REQ-SW-306, REQ-SW-307, REQ-SW-308, REQ-SW-309, REQ-SW-310, REQ-SW-311
+ * @implements REQ-HW-020, REQ-HW-021, REQ-HW-022, REQ-HW-023, REQ-SW-301,
+ *             REQ-SW-302, REQ-SW-303, REQ-SW-304, REQ-SW-305, REQ-SW-306,
+ *             REQ-SW-307, REQ-SW-308, REQ-SW-309, REQ-SW-310, REQ-SW-311
  */
 
 #include <button.h>
@@ -25,14 +27,6 @@ static const struct gpio_dt_spec button2 =
 
 static struct button_state *button_state_ptr = NULL;
 static struct wheel_config *wheel_config_ptr = NULL;
-
-/* NOTE: button_state_ptr and wheel_config_ptr are set by button_init() and
- * button_set_wheel_config() respectively. There is a small race condition window
- * between these two calls in app.c where button_set_wheel_config() is called
- * before button_init(). If a button interrupt fires during this window,
- * __ASSERT_NO_MSG(wheel_config_ptr != NULL) will trigger. In practice this is
- * unlikely as initialization is fast, but for robustness consider using a
- * single initialization function that takes all required pointers. */
 
 /* Button callback data structure with user data */
 struct button_cb_data {
@@ -108,11 +102,12 @@ static void button_pressed(const struct device *dev, struct gpio_callback *cb, u
 
 /**
  * @brief Initialize button GPIOs and interrupts
- * @implements REQ-SW-301, REQ-SW-302
+ * @implements REQ-SW-301, REQ-SW-302, REQ-SW-303
  * @param button_state Pointer to button state structure
+ * @param wheel_config Wheel configuration structure
  * @return 0 on success, negative errno on failure
  */
-int button_init(struct button_state *button_state)
+int button_init(struct button_state *button_state, struct wheel_config *wheel_config)
 {
 	int ret;
 
@@ -125,6 +120,9 @@ int button_init(struct button_state *button_state)
 	button_state->save_wheel_diameter_pending = false;
 	button_state->previous_press_time[0] = 0;
 	button_state->previous_press_time[1] = 0;
+
+	/* Initialize wheen config before adding callbacks */
+	wheel_config_ptr = wheel_config;
 
 	if (!device_is_ready(button1.port) || !device_is_ready(button2.port)) {
 		return -ENODEV;
@@ -161,14 +159,4 @@ int button_init(struct button_state *button_state)
 	gpio_add_callback(button2.port, &button_cb_data[1].callback);
 
 	return 0;
-}
-
-/**
- * @brief Set wheel config pointer for button callbacks
- * @implements REQ-SW-303
- * @param wheel_config Pointer to wheel configuration
- */
-void button_set_wheel_config(struct wheel_config *wheel_config)
-{
-	wheel_config_ptr = wheel_config;
 }

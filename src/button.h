@@ -15,15 +15,10 @@
 /**
  * @brief Initialize button GPIOs and interrupts
  * @param button_state Pointer to button state structure
+ * @param wheel_config Wheel configuration structure
  * @return 0 on success, negative errno on failure
  */
-int button_init(struct button_state *button_state);
-
-/**
- * @brief Set wheel config pointer for button callbacks
- * @param wheel_config Pointer to wheel configuration
- */
-void button_set_wheel_config(struct wheel_config *wheel_config);
+int button_init(struct button_state *button_state, struct wheel_config *wheel_config);
 
 /**
  * @brief Get button count

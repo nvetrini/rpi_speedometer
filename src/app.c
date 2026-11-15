@@ -150,9 +150,8 @@ int app_run(void)
 		return ret;
 	}
 
-	/* Initialize buttons */
-	button_set_wheel_config(&wheel_config);
-	ret = button_init(&button_state);
+	/* Initialize buttons and wheel config */
+	ret = button_init(&button_state, &wheel_config);
 	if (ret < 0) {
 		LOG_WRN("Button initialization failed: %d, continuing without buttons", -ret);
 	}
