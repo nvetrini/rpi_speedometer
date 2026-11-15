@@ -65,11 +65,10 @@ void console_print_diameter(int diameter_cm)
  * @brief Print battery status to console
  * @implements REQ-SW-708
  * @param percentage Battery percentage
- * @param voltage Battery voltage in volts
  */
-void console_print_battery(int percentage, float voltage)
+void console_print_battery(int percentage)
 {
-	LOG_INF("Battery: %d%% (%.2fV)", percentage, (double)voltage);
+	LOG_INF("Battery: %d%%", percentage);
 }
 
 /**

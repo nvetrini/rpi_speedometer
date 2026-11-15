@@ -70,17 +70,17 @@ void speed_calculator_update(uint32_t current_count, uint32_t last_count,
 {
 	uint32_t delta = current_count - last_count;
 	float circumference_m = speed_calculator_circumference_m(wheel_diameter_cm);
-	
+
 	/* Distance traveled this period */
 	float distance_this_period_m = delta * circumference_m;
-	
+
 	/* Total distance
 	 * FIXME: Using float for intermediate calculation loses precision for large
 	 * counts (> 2^24 ~16.7M revolutions). For a 66cm wheel, this corresponds to
 	 * ~52km of travel. Consider using uint64_t for intermediate if higher precision
 	 * is needed for long-distance tracking. */
 	*total_distance_m = (uint32_t)(current_count * circumference_m);
-	
+
 	/* Speed: distance / time * 3.6 */
 	float time_s = interval_ms / 1000.0f;
 	*speed_kmh = speed_calculator_speed_kmh(distance_this_period_m, time_s);

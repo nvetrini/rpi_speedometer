@@ -36,9 +36,8 @@ void console_print_diameter(int diameter_cm);
 /**
  * @brief Print battery status
  * @param percentage Battery percentage
- * @param voltage Battery voltage
  */
-void console_print_battery(int percentage, float voltage);
+void console_print_battery(int percentage);
 
 /**
  * @brief Print initialization message

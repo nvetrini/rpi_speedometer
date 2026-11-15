@@ -28,7 +28,7 @@ config SD_CARD_ENABLED
 
 config BATTERY_ENABLED
 	bool "Enable battery monitoring via ADC"
-	default y
+	default n
 	select ADC
 	help
 		Enable support for battery voltage monitoring via ADC.

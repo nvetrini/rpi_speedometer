@@ -49,7 +49,7 @@ This repository implements a **bike computer/speedometer** application using the
 | `DEBOUNCE_MS` | 50 | `main.c` | Debounce interval for all inputs |
 | `REPORT_INTERVAL_MS` | 1000 | `main.c` | Speed update calculation interval |
 | `MODE_SWITCH_DELAY_MS` | 500 | `main.c` | Double-press detection window |
-| `DEFAULT_WHEEL_DIAMETER_CM` | 660 | `main.c` | Default wheel diameter (mm) |
+| `DEFAULT_WHEEL_DIAMETER_CM` | 66 | `main.c` | Default wheel diameter (cm) |
 | `MIN_WHEEL_DIAMETER_CM` | 10 | `main.c` | Minimum configurable diameter |
 | `MAX_WHEEL_DIAMETER_CM` | 100 | `main.c` | Maximum configurable diameter |
 | `BATTERY_SAMPLE_INTERVAL_S` | 60 | `main.c` | Battery voltage sample interval |

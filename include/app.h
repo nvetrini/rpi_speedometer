@@ -76,7 +76,6 @@ struct wheel_config {
 /* Battery state */
 struct battery_state {
 	int percentage;
-	float voltage;
 	bool valid;
 };
 

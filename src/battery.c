@@ -61,7 +61,6 @@ int battery_read(struct battery_state *battery_state)
 	float battery_voltage = battery_adc_to_voltage(adc_value);
 	int percentage = battery_voltage_to_percentage(battery_voltage);
 
-	battery_state->voltage = battery_voltage;
 	battery_state->percentage = percentage;
 	battery_state->valid = true;
 

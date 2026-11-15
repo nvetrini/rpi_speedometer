@@ -20,7 +20,6 @@ static void *battery_test_setup(void)
     /* Reset battery state */
     memset(&test_battery_state, 0, sizeof(test_battery_state));
     test_battery_state.percentage = -1;
-    test_battery_state.voltage = 0.0f;
     test_battery_state.valid = false;
     return NULL;
 }
@@ -159,12 +158,10 @@ ZTEST(battery_test, test_battery_state_updates)
 {
     /* Test updating battery state */
     test_battery_state.percentage = 75;
-    test_battery_state.voltage = 2.5f;
     test_battery_state.valid = true;
 
     /* Verify updates */
     zassert_equal(test_battery_state.percentage, 75, "Percentage should be updated to 75");
-    zassert_equal(test_battery_state.voltage, 2.5f, "Voltage should be updated to 2.5V");
     zassert_true(test_battery_state.valid, "Valid flag should be true");
 }
 

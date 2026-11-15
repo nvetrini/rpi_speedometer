@@ -54,7 +54,7 @@ static struct runtime_state runtime_state = {
 #ifdef CONFIG_BATTERY_ENABLED
 static struct battery_state battery_state = {
 	.percentage = -1,
-	.voltage = 0.0f,
+
 	.valid = false,
 };
 #endif
@@ -171,7 +171,7 @@ int app_run(void)
 			if (battery_ret < 0) {
 				LOG_ERR("Battery read failed: %d", battery_ret);
 			} else {
-				console_print_battery(battery_state.percentage, battery_state.voltage);
+				console_print_battery(battery_state.percentage);
 			}
 			battery_sample_counter = 0;
 		}
