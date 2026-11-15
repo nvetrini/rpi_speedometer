@@ -36,11 +36,14 @@ west flash
 (This mounts the Pico as a USB mass-storage device and copies the
 generated UF2 image to it.)
 
+**WARNING** wait until the drive unmounts itself automatically, as the UF2 runner
+will terminate and exit before the flashing is really complete.
+
 ## View output
 
-The Pico build exposes its console over USB CDC-ACM. After flashing, connect
-the Pico normally (without holding BOOTSEL) and find its serial device with
-`dmesg | grep ttyACM`. Connect with a serial terminal, for example:
+The sample prints to the console (USB CDC-ACM or UART depending on
+your prj.conf/board defaults). Unplug the USB and re-plug not holding BOOTSEL, then
+connect with a serial terminal, e.g.:
 
 ```
 minicom -D /dev/ttyACM0 -b 115200
