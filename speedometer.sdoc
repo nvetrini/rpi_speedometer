@@ -149,7 +149,7 @@ TITLE: Software Requirements
 UID: REQ-SW-001
 TITLE: Operating System
 STATEMENT: >>>
-The system SHALL run on the Zephyr RTOS, version 4.4.0.
+The system SHALL run on the Zephyr RTOS, version 4.5.0.
 <<<
 
 [[/SECTION]]
