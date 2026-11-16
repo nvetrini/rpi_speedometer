@@ -19,11 +19,11 @@
 		zephyr,display = &display;
 		zephyr,console = &cdc_acm_uart0;
 	};
-
 };
 
 &zephyr_udc0 {
 	status = "okay";
+
 	cdc_acm_uart0: cdc_acm_uart0 {
 		compatible = "zephyr,cdc-acm-uart";
 		status = "okay";
@@ -31,12 +31,12 @@
 };
 
 &uart0 {
-    status = "disabled";
+	status = "disabled";
 };
 
 /* Enable I2C for SH1106 display */
 &i2c0 {
-    status = "okay";
+	status = "okay";
 	clock-frequency = <400000>;
 
 	display: sh1106@3c {
@@ -59,9 +59,10 @@
 &flash0 {
 	partitions {
 		compatible = "fixed-partitions";
-        #address-cells = <1>;
-        #size-cells = <1>;
-			/* Storage partition for NVS settings - 16KB at 128KB offset from flash start */
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		/* Storage partition for NVS settings - 16KB at 128KB offset from flash start */
 		storage_partition: partition@20000 {
 			label = "storage";
 			reg = <0x00020000 0x00004000>;
@@ -70,18 +71,20 @@
 };
 
 &spi0 {
-        status = "okay";
-        cs-gpios = <&gpio0 16 GPIO_ACTIVE_LOW>;
+	status = "okay";
+	cs-gpios = <&gpio0 16 GPIO_ACTIVE_LOW>;
 
-        sdhc0: sdhc@0 {
-                compatible = "zephyr,sdhc-spi-slot";
-                reg = <0>;
-                status = "okay";
-                mmc {
-                    compatible = "zephyr,sdmmc-disk";
-                    disk-name = "SD";
-                    status = "okay";
-                };
-                spi-max-frequency = <24000000>;
-        };
+	sdhc0: sdhc@0 {
+		compatible = "zephyr,sdhc-spi-slot";
+		reg = <0>;
+		status = "okay";
+
+		mmc {
+			compatible = "zephyr,sdmmc-disk";
+			disk-name = "SD";
+			status = "okay";
+		};
+
+		spi-max-frequency = <24000000>;
+	};
 };
