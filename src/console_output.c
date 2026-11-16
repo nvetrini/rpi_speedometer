@@ -10,7 +10,7 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(console);
+LOG_MODULE_REGISTER(app_console);
 
 /**
  * @brief Print status information to console
@@ -78,6 +78,13 @@ void console_print_battery(int percentage)
  */
 void console_print_init(int diameter_cm)
 {
+    /* Ensure USB CDC ACM console is ready before printing */
+    while (!device_is_ready(DEVICE_DT_GET(DT_CHOSEN(zephyr_console)))) {
+        k_sleep(K_MSEC(100));
+    }
+    /* Wait for OS USB CDC-ACM */
+    k_sleep(K_MSEC(2000));
+
 	LOG_INF("Wheel diameter: %d cm", diameter_cm);
 	LOG_INF("Wheel sensor ready, waiting for revolutions...");
 	LOG_INF("Press button 1 twice quickly to enter settings mode");

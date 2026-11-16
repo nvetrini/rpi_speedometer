@@ -19,17 +19,24 @@
 		zephyr,display = &display;
 		zephyr,console = &cdc_acm_uart0;
 	};
+
 };
 
 &zephyr_udc0 {
+	status = "okay";
 	cdc_acm_uart0: cdc_acm_uart0 {
 		compatible = "zephyr,cdc-acm-uart";
+		status = "okay";
 	};
+};
+
+&uart0 {
+    status = "disabled";
 };
 
 /* Enable I2C for SH1106 display */
 &i2c0 {
-	status = "okay";
+    status = "okay";
 	clock-frequency = <400000>;
 
 	display: sh1106@3c {
@@ -44,6 +51,7 @@
 		segment-remap;
 		com-invdir;
 		prechargep = <0x22>;
+		status = "okay";
 	};
 };
 

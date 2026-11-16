@@ -156,6 +156,8 @@ int app_run(void)
 		LOG_WRN("Button initialization failed: %d, continuing without buttons", -ret);
 	}
 
+	LOG_INF("Ready to spin!");
+
 #ifdef CONFIG_BATTERY_ENABLED
 	uint32_t battery_sample_counter = 0;
 #endif

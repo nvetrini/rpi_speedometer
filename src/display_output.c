@@ -33,8 +33,8 @@ int display_init(void)
 	int ret;
 	uint8_t font_width;
 
-	display_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
-	if (!device_is_ready(display_dev)) {
+	display_dev = DEVICE_DT_GET_OR_NULL(DT_CHOSEN(zephyr_display));
+	if (NULL == display_dev || !device_is_ready(display_dev)) {
 		LOG_WRN("Display device not ready");
 		return -ENODEV;
 	}
